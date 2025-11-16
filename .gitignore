@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.dll
+.venv/
+.env
+.env.*
+.python-version
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Build/Dist/Logs
+build/
+dist/
+*.egg-info/
+.eggs/
+logs/
+
+# Test/Cache
+.pytest_cache/
+.mypy_cache/
+pytestdebug.log
+.coverage*
+htmlcov/
+.cache/
+
+# OS/Editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/*
+!.vscode/settings.json
+
+# Project data (do not push)
+datasets/
+garbage/
+temscript/
+
+# Model artifacts & runs
+runs/
+checkpoints/
+artifacts/
+
+# Reports/plots (optional large outputs)
+reports/figures/
