@@ -38,13 +38,13 @@ Thumbs.db
 
 # Project data (do not push)
 datasets/
-garbage/
-temscript/
 
-# Model artifacts & runs
+# Model artifacts & runs (generated during training)
 runs/
 checkpoints/
 artifacts/
+models/
 
-# Reports/plots (optional large outputs)
-reports/figures/
+# Reports/outputs (generated during analysis)
+reports/
+notebooks/
