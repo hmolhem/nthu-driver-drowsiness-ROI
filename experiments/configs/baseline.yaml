@@ -1,0 +1,42 @@
+# Baseline configuration for NTHU-DDD2 drowsiness detection
+
+data:
+  data_root: "data/NTHU-DDD2"
+  image_size: [224, 224]
+  batch_size: 32
+  num_workers: 4
+  train_subjects: null  # Will be auto-generated
+  val_subjects: null
+  test_subjects: null
+  use_roi: true
+  augmentation: true
+
+model:
+  backbone: "resnet18"
+  pretrained: true
+  num_classes: 2
+  dropout: 0.5
+  use_roi_attention: true
+  freeze_backbone: false
+
+training:
+  num_epochs: 100
+  learning_rate: 0.0001
+  weight_decay: 0.00001
+  optimizer: "adam"
+  scheduler: "cosine"
+  warmup_epochs: 5
+  early_stopping_patience: 15
+  gradient_clip: 1.0
+  mixed_precision: true
+
+experiment:
+  experiment_name: "baseline_resnet18"
+  output_dir: "experiments"
+  checkpoint_dir: "checkpoints"
+  log_dir: "logs"
+  save_freq: 5
+  eval_freq: 1
+  use_wandb: false
+  wandb_project: "nthu-drowsiness"
+  seed: 42
