@@ -46,5 +46,11 @@ artifacts/
 models/
 
 # Reports/outputs (generated during analysis)
-reports/
-notebooks/
+reports/*.png
+reports/*.pdf
+reports/*.html
+
+# Notebooks (but keep Colab training notebook)
+.ipynb_checkpoints/
+notebooks/*
+!notebooks/colab_training.ipynb
