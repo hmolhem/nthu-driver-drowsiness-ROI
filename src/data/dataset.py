@@ -9,6 +9,9 @@ from pathlib import Path
 import pandas as pd
 
 
+# KERAS COMPARISON: Dataset replaces ImageDataGenerator
+# In Keras: datagen.flow_from_directory() or datagen.flow_from_dataframe()
+# In PyTorch: Custom Dataset class with __getitem__ method
 class DrowsinessDataset(Dataset):
     """
     PyTorch Dataset for drowsiness detection.
@@ -51,18 +54,22 @@ class DrowsinessDataset(Dataset):
         """
         Get a single sample.
         
+        KERAS COMPARISON: This method replaces Keras data generator's image loading
+        In Keras: Generator yields batches automatically
+        In PyTorch: __getitem__ gets ONE sample, DataLoader batches them
+        
         Returns:
             tuple: (image, label, metadata_dict)
         """
         row = self.df.iloc[idx]
         
-        # Load image
+        # Load image (like Keras load_img)
         img_path = self.data_root / row['filename']
         image = Image.open(img_path).convert('RGB')
         
-        # Apply transform
+        # Apply transform (like Keras preprocessing_function + augmentation)
         if self.transform:
-            image = self.transform(image)
+            image = self.transform(image)  # Returns tensor (C, H, W)
         
         # Get label
         label = self.label_map[row['label']]
@@ -100,6 +107,9 @@ class DrowsinessDataset(Dataset):
         return weights
 
 
+# KERAS COMPARISON: create_dataloaders() replaces Keras flow_from_* methods
+# In Keras: train_gen = datagen.flow_from_dataframe(df, batch_size=32)
+# In PyTorch: train_loader = DataLoader(dataset, batch_size=32)
 def create_dataloaders(
     train_csv,
     val_csv,
@@ -128,7 +138,7 @@ def create_dataloaders(
     Returns:
         dict: Dictionary with 'train', 'val', 'test' dataloaders
     """
-    from torch.utils.data import DataLoader
+    from torch.utils.data import DataLoader  # Like Keras generators
     
     # Create datasets
     train_dataset = DrowsinessDataset(

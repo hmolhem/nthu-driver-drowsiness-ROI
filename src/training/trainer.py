@@ -105,8 +105,14 @@ class Trainer:
             self.scheduler = None
     
     def train_epoch(self):
-        """Train for one epoch."""
-        self.model.train()
+        """
+        Train for one epoch.
+        
+        KERAS COMPARISON: This replaces model.fit() for one epoch
+        In Keras: model.fit(x, y, epochs=1)  # All this happens automatically
+        In PyTorch: You write the loop explicitly (more control!)
+        """
+        self.model.train()  # Like: model.trainable = True
         
         loss_meter = AverageMeter()
         metrics_calc = MetricsCalculator(
@@ -116,24 +122,25 @@ class Trainer:
         
         pbar = tqdm(self.train_loader, desc=f'Epoch {self.current_epoch} [Train]')
         
+        # KERAS COMPARISON: This loop replaces the magic inside model.fit()
         for batch_idx, (images, labels, metadata) in enumerate(pbar):
-            images = images.to(self.device)
+            images = images.to(self.device)  # Move to GPU if available
             labels = labels.to(self.device)
             
-            # Forward
-            self.optimizer.zero_grad()
-            outputs = self.model(images)
-            loss = self.criterion(outputs, labels)
+            # Forward pass (like Keras does internally)
+            self.optimizer.zero_grad()  # Clear gradients (Keras does this automatically)
+            outputs = self.model(images)  # Forward pass
+            loss = self.criterion(outputs, labels)  # Compute loss
             
-            # Backward
-            loss.backward()
+            # Backward pass (like Keras does internally)
+            loss.backward()  # Compute gradients (Keras does this automatically)
             
-            # Gradient clipping
+            # Gradient clipping (optional, like Keras clipnorm parameter)
             if self.config.get('training', {}).get('gradient_clipping', {}).get('enabled', False):
                 max_norm = self.config['training']['gradient_clipping'].get('max_norm', 1.0)
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm)
             
-            self.optimizer.step()
+            self.optimizer.step()  # Update weights (Keras does this automatically)
             
             # Track metrics
             preds = outputs.argmax(dim=1)
@@ -152,10 +159,16 @@ class Trainer:
         
         return train_metrics
     
-    @torch.no_grad()
+    @torch.no_grad()  # KERAS COMPARISON: Like training=False in Keras
     def validate(self):
-        """Validate on validation set."""
-        self.model.eval()
+        """
+        Validate on validation set.
+        
+        KERAS COMPARISON: This replaces model.evaluate()
+        In Keras: loss, acc = model.evaluate(val_x, val_y)
+        In PyTorch: You write the validation loop explicitly
+        """
+        self.model.eval()  # Like: model.trainable = False (disables dropout, batchnorm updates)
         
         loss_meter = AverageMeter()
         metrics_calc = MetricsCalculator(

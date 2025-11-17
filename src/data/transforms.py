@@ -1,6 +1,10 @@
 """
 Data transformations for drowsiness detection dataset.
 Includes preprocessing, normalization, and augmentation.
+
+KERAS COMPARISON: transforms replace ImageDataGenerator preprocessing
+In Keras: ImageDataGenerator(rescale=1./255, rotation_range=10, ...)
+In PyTorch: transforms.Compose([transforms.Resize(), transforms.RandomRotation(), ...])
 """
 
 import torch
@@ -12,6 +16,17 @@ def get_train_transforms(image_size=224, augment=True):
     """
     Get training data transforms with optional augmentation.
     
+    KERAS COMPARISON: This replaces ImageDataGenerator for training
+    In Keras: 
+        train_datagen = ImageDataGenerator(
+            rescale=1./255,
+            horizontal_flip=True,
+            rotation_range=10,
+            width_shift_range=0.1,
+            height_shift_range=0.1,
+            zoom_range=0.1
+        )
+    
     Args:
         image_size: Target image size (default: 224 for ResNet/EfficientNet)
         augment: Whether to apply data augmentation
@@ -20,20 +35,21 @@ def get_train_transforms(image_size=224, augment=True):
         torchvision.transforms.Compose object
     """
     transform_list = [
-        transforms.Resize((image_size, image_size)),
+        transforms.Resize((image_size, image_size)),  # Like target_size in Keras
     ]
     
     if augment:
+        # KERAS COMPARISON: These replace ImageDataGenerator augmentation params
         transform_list.extend([
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.ColorJitter(
+            transforms.RandomHorizontalFlip(p=0.5),  # Like horizontal_flip=True
+            transforms.ColorJitter(  # Like brightness_range, etc.
                 brightness=0.2,
                 contrast=0.2,
                 saturation=0.2,
                 hue=0.1
             ),
-            transforms.RandomRotation(degrees=10),
-            transforms.RandomAffine(
+            transforms.RandomRotation(degrees=10),  # Like rotation_range=10
+            transforms.RandomAffine(  # Like width_shift_range, zoom_range
                 degrees=0,
                 translate=(0.1, 0.1),
                 scale=(0.9, 1.1)
@@ -41,8 +57,8 @@ def get_train_transforms(image_size=224, augment=True):
         ])
     
     transform_list.extend([
-        transforms.ToTensor(),
-        transforms.Normalize(
+        transforms.ToTensor(),  # Converts PIL Image to tensor AND scales [0,255] -> [0,1] (like rescale=1./255)
+        transforms.Normalize(  # Like preprocessing_function with ImageNet stats
             mean=[0.485, 0.456, 0.406],  # ImageNet mean
             std=[0.229, 0.224, 0.225]    # ImageNet std
         )
