@@ -1,0 +1,266 @@
+"""Training engine for drowsiness detection models."""
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from pathlib import Path
+from tqdm import tqdm
+import json
+
+from ..training.metrics import MetricsCalculator, AverageMeter, calculate_macro_f1
+
+
+class Trainer:
+    """Training engine for classification models."""
+    
+    def __init__(
+        self,
+        model,
+        train_loader,
+        val_loader,
+        config,
+        device='cuda'
+    ):
+        """
+        Initialize trainer.
+        
+        Args:
+            model: PyTorch model
+            train_loader: Training data loader
+            val_loader: Validation data loader
+            config: Training configuration
+            device: Device to train on ('cuda' or 'cpu')
+        """
+        self.model = model.to(device)
+        self.train_loader = train_loader
+        self.val_loader = val_loader
+        self.config = config
+        self.device = device
+        
+        # Setup training components
+        self.setup_optimizer()
+        self.setup_criterion()
+        self.setup_scheduler()
+        
+        # Tracking
+        self.current_epoch = 0
+        self.best_metric = -float('inf')
+        self.epochs_no_improve = 0
+        
+        # Directories
+        self.save_dir = Path(config.get('logging', {}).get('save_dir', 'checkpoints'))
+        self.save_dir.mkdir(parents=True, exist_ok=True)
+        
+        self.experiment_name = config.get('logging', {}).get('experiment_name', 'experiment')
+    
+    def setup_optimizer(self):
+        """Setup optimizer from config."""
+        train_config = self.config.get('training', {})
+        optimizer_name = train_config.get('optimizer', 'adam').lower()
+        lr = train_config.get('learning_rate', 0.001)
+        weight_decay = train_config.get('weight_decay', 0.0)
+        
+        if optimizer_name == 'adam':
+            self.optimizer = optim.Adam(
+                self.model.parameters(),
+                lr=lr,
+                weight_decay=weight_decay
+            )
+        elif optimizer_name == 'sgd':
+            self.optimizer = optim.SGD(
+                self.model.parameters(),
+                lr=lr,
+                weight_decay=weight_decay,
+                momentum=0.9
+            )
+        else:
+            raise ValueError(f"Unsupported optimizer: {optimizer_name}")
+    
+    def setup_criterion(self):
+        """Setup loss criterion from config."""
+        loss_config = self.config.get('training', {}).get('loss', {})
+        loss_type = loss_config.get('type', 'cross_entropy')
+        
+        if loss_type == 'weighted_cross_entropy' and loss_config.get('use_class_weights'):
+            # Get class weights from training dataset
+            class_weights = self.train_loader.dataset.get_class_weights()
+            self.criterion = nn.CrossEntropyLoss(weight=class_weights.to(self.device))
+        else:
+            self.criterion = nn.CrossEntropyLoss()
+    
+    def setup_scheduler(self):
+        """Setup learning rate scheduler from config."""
+        lr_config = self.config.get('training', {}).get('lr_scheduler', {})
+        scheduler_type = lr_config.get('type', 'reduce_on_plateau')
+        
+        if scheduler_type == 'reduce_on_plateau':
+            self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+                self.optimizer,
+                mode=lr_config.get('mode', 'max'),
+                factor=lr_config.get('factor', 0.5),
+                patience=lr_config.get('patience', 5),
+                min_lr=lr_config.get('min_lr', 1e-6)
+            )
+        else:
+            self.scheduler = None
+    
+    def train_epoch(self):
+        """Train for one epoch."""
+        self.model.train()
+        
+        loss_meter = AverageMeter()
+        metrics_calc = MetricsCalculator(
+            num_classes=2,
+            class_names=['notdrowsy', 'drowsy']
+        )
+        
+        pbar = tqdm(self.train_loader, desc=f'Epoch {self.current_epoch} [Train]')
+        
+        for batch_idx, (images, labels, metadata) in enumerate(pbar):
+            images = images.to(self.device)
+            labels = labels.to(self.device)
+            
+            # Forward
+            self.optimizer.zero_grad()
+            outputs = self.model(images)
+            loss = self.criterion(outputs, labels)
+            
+            # Backward
+            loss.backward()
+            
+            # Gradient clipping
+            if self.config.get('training', {}).get('gradient_clipping', {}).get('enabled', False):
+                max_norm = self.config['training']['gradient_clipping'].get('max_norm', 1.0)
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm)
+            
+            self.optimizer.step()
+            
+            # Track metrics
+            preds = outputs.argmax(dim=1)
+            metrics_calc.update(preds, labels)
+            loss_meter.update(loss.item(), images.size(0))
+            
+            # Update progress bar
+            pbar.set_postfix({
+                'loss': f'{loss_meter.avg:.4f}',
+                'lr': f'{self.optimizer.param_groups[0]["lr"]:.6f}'
+            })
+        
+        # Compute epoch metrics
+        train_metrics = metrics_calc.compute()
+        train_metrics['loss'] = loss_meter.avg
+        
+        return train_metrics
+    
+    @torch.no_grad()
+    def validate(self):
+        """Validate on validation set."""
+        self.model.eval()
+        
+        loss_meter = AverageMeter()
+        metrics_calc = MetricsCalculator(
+            num_classes=2,
+            class_names=['notdrowsy', 'drowsy']
+        )
+        
+        pbar = tqdm(self.val_loader, desc=f'Epoch {self.current_epoch} [Val]')
+        
+        for images, labels, metadata in pbar:
+            images = images.to(self.device)
+            labels = labels.to(self.device)
+            
+            outputs = self.model(images)
+            loss = self.criterion(outputs, labels)
+            
+            preds = outputs.argmax(dim=1)
+            metrics_calc.update(preds, labels)
+            loss_meter.update(loss.item(), images.size(0))
+            
+            pbar.set_postfix({'loss': f'{loss_meter.avg:.4f}'})
+        
+        val_metrics = metrics_calc.compute()
+        val_metrics['loss'] = loss_meter.avg
+        
+        return val_metrics
+    
+    def save_checkpoint(self, metrics, is_best=False):
+        """Save model checkpoint."""
+        checkpoint = {
+            'epoch': self.current_epoch,
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'metrics': metrics,
+            'config': self.config
+        }
+        
+        # Save last checkpoint
+        last_path = self.save_dir / f'{self.experiment_name}_last.pth'
+        torch.save(checkpoint, last_path)
+        
+        # Save best checkpoint
+        if is_best:
+            best_path = self.save_dir / f'{self.experiment_name}_best.pth'
+            torch.save(checkpoint, best_path)
+            print(f"✓ Saved best model to {best_path}")
+    
+    def train(self, num_epochs):
+        """
+        Full training loop.
+        
+        Args:
+            num_epochs: Number of epochs to train
+        """
+        early_stop_config = self.config.get('training', {}).get('early_stopping', {})
+        early_stop_enabled = early_stop_config.get('enabled', False)
+        early_stop_patience = early_stop_config.get('patience', 10)
+        monitor_metric = early_stop_config.get('monitor', 'val_macro_f1')
+        
+        print(f"\n{'='*60}")
+        print(f"Starting training: {self.experiment_name}")
+        print(f"{'='*60}\n")
+        
+        for epoch in range(num_epochs):
+            self.current_epoch = epoch + 1
+            
+            # Train
+            train_metrics = self.train_epoch()
+            
+            # Validate
+            val_metrics = self.validate()
+            
+            # Print metrics
+            print(f"\nEpoch {self.current_epoch}/{num_epochs}")
+            print(f"  Train - Loss: {train_metrics['loss']:.4f}, "
+                  f"Acc: {train_metrics['accuracy']:.4f}, "
+                  f"Macro-F1: {train_metrics['f1_macro']:.4f}")
+            print(f"  Val   - Loss: {val_metrics['loss']:.4f}, "
+                  f"Acc: {val_metrics['accuracy']:.4f}, "
+                  f"Macro-F1: {val_metrics['f1_macro']:.4f}")
+            
+            # Learning rate scheduling
+            if self.scheduler is not None:
+                self.scheduler.step(val_metrics['f1_macro'])
+            
+            # Check if best model
+            current_metric = val_metrics.get('f1_macro', 0)
+            is_best = current_metric > self.best_metric
+            
+            if is_best:
+                self.best_metric = current_metric
+                self.epochs_no_improve = 0
+            else:
+                self.epochs_no_improve += 1
+            
+            # Save checkpoint
+            self.save_checkpoint(val_metrics, is_best=is_best)
+            
+            # Early stopping
+            if early_stop_enabled and self.epochs_no_improve >= early_stop_patience:
+                print(f"\nEarly stopping triggered after {epoch + 1} epochs")
+                print(f"Best {monitor_metric}: {self.best_metric:.4f}")
+                break
+        
+        print(f"\n{'='*60}")
+        print(f"Training completed!")
+        print(f"Best validation macro-F1: {self.best_metric:.4f}")
+        print(f"{'='*60}\n")
