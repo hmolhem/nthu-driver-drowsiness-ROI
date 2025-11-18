@@ -43,7 +43,8 @@ datasets/
 runs/
 checkpoints/
 artifacts/
-models/
+# Only ignore top-level models/ if used as artifact dir; keep src/models tracked
+/models/
 
 # Reports/outputs (generated during analysis)
 reports/*.png
