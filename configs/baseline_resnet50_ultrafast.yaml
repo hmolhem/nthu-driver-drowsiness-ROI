@@ -1,0 +1,73 @@
+# Ultra-fast baseline ResNet50 for CPU training
+# Minimal settings for quick iteration
+
+model:
+  name: "resnet50"
+  architecture: "resnet50"
+  pretrained: true
+  num_classes: 2
+  freeze_backbone: false
+
+data:
+  data_root: "datasets/archive"
+  train_csv: "data/splits/train.csv"
+  val_csv: "data/splits/val.csv"
+  test_csv: "data/splits/test.csv"
+  image_size: 128          # very small for CPU speed
+  batch_size: 8            # small batch for low RAM
+  num_workers: 0           # Windows-friendly
+  pin_memory: false
+
+augmentation:
+  enabled: true
+  horizontal_flip: 0.5
+  color_jitter:
+    brightness: 0.2
+    contrast: 0.2
+    saturation: 0.2
+    hue: 0.1
+  rotation_degrees: 10
+  random_affine:
+    translate: [0.1, 0.1]
+    scale: [0.9, 1.1]
+
+training:
+  epochs: 2                # just 2 epochs for quick test
+  optimizer: "adam"
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+  lr_scheduler:
+    type: "reduce_on_plateau"
+    mode: "max"
+    factor: 0.5
+    patience: 1
+    min_lr: 0.000001
+  loss:
+    type: "weighted_cross_entropy"
+    use_class_weights: true
+  early_stopping:
+    enabled: false         # disabled for short run
+  gradient_clipping:
+    enabled: true
+    max_norm: 1.0
+
+evaluation:
+  metrics:
+    - accuracy
+    - precision
+    - recall
+    - f1_score
+    - macro_f1
+    - confusion_matrix
+  primary_metric: "macro_f1"
+
+logging:
+  experiment_name: "baseline_resnet50_ultrafast"
+  log_dir: "runs"
+  save_dir: "checkpoints"
+  log_interval: 50
+  save_best_only: true
+  save_last: true
+
+seed: 42
+device: "cpu"
