@@ -134,8 +134,18 @@ Per-Class Detail:
 
 ## Export to PDF (Options)
 
-- VS Code: Open this file and use “Markdown: Print to PDF” (or the Markdown PDF extension).
+- VS Code: Open this file and use "Markdown: Print to PDF" (or the Markdown PDF extension).
 - Pandoc (if installed):
 ```powershell
 pandoc docs/individual-progress-report.md -o docs/individual-progress-report.pdf
 ```
+
+---
+
+## Repository Links
+
+- **GitHub Repository:** [hmolhem/nthu-driver-drowsiness-ROI](https://github.com/hmolhem/nthu-driver-drowsiness-ROI)
+- **Documentation Folder:** [docs/](https://github.com/hmolhem/nthu-driver-drowsiness-ROI/tree/main/docs)
+- **Evaluation Figures:** [reports/figures/](https://github.com/hmolhem/nthu-driver-drowsiness-ROI/tree/main/reports/figures)
+- **Training Notebooks:** [notebooks/colab_gpu_training.ipynb](https://github.com/hmolhem/nthu-driver-drowsiness-ROI/blob/main/notebooks/colab_gpu_training.ipynb)
+- **Latest Release:** [v0.1-eval-baseline](https://github.com/hmolhem/nthu-driver-drowsiness-ROI/releases/tag/v0.1-eval-baseline)
