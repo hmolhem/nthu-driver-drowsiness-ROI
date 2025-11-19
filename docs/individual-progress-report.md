@@ -46,6 +46,20 @@ metrics_to_save["roc_auc"] = roc_auc_scores
   - Challenge: Training on Colab became time-consuming with dataset streamed from Google Drive and `num_workers=4` (~5.25 s/iteration mid-epoch), while validation degraded after epoch 1 (classic overfitting).
   - Resolution: Copy dataset to local VM path (`datasets/archive`), reduce `num_workers` to 2, keep `pin_memory: true`. Adopt stronger regularization (freeze backbone, higher dropout, lower LR, higher WD) and add a lighter baseline (EfficientNet-B0) for faster epochs and better generalization.
 
+### Overfitting Analysis
+
+| Epoch | Train Loss | Train Macro-F1 | Val Loss | Val Macro-F1 | Notes |
+|-------|-----------:|---------------:|---------:|-------------:|-------|
+| 1     | 0.2207     | 0.9071         | 0.8263   | **0.5772**    | Best validation; checkpoint saved |
+| 2     | 0.1218     | 0.9524         | 1.2085   | 0.4987        | Validation performance drops sharply |
+| 3     | 0.1012     | 0.9602         | 1.4190   | 0.4782        | Further decline; overfitting intensifies |
+
+Pattern: Training metrics improve (loss ↓, F1 ↑) while validation loss increases and Macro-F1 decreases after epoch 1. This divergence indicates memorization of training samples rather than generalizable features.
+
+Mitigation steps now in place: backbone freezing, increased dropout, stronger weight decay, lower learning rate, early stopping patience reduction, lighter alternative architecture (EfficientNet-B0), and improved data loading throughput (local copy + fewer workers).
+
+**Challenge: Training Time (Bold)** – In addition to overfitting, the throughput slowdown (≈5.25 s/iteration mid-epoch when reading from Drive with 4 workers) inflated epoch duration, making rapid experimentation impractical until mitigations (local copy, fewer workers) were applied.
+
 ---
 
 ## Part 2: Plan to Complete Before Final Presentation
