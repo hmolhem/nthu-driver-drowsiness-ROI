@@ -32,6 +32,7 @@
   - Test (ResNet50 best): Accuracy 0.5818; Macro-F1 0.5806; ROC AUC (macro) 0.6415.
   - Generated figures (copied to `reports/figures/`):
     - `confusion_matrix_test.png`, `confusion_matrix_test_normalized.png`, `roc_curves_test.png`.
+  - (If run) `comparison_baselines.png` (Macro-F1 vs Accuracy bar charts).
   - Minimal code snippet (evaluation entry):
 ```
 # src/eval/evaluate_model.py (excerpt)
@@ -76,6 +77,44 @@ metrics_to_save["roc_auc"] = roc_auc_scores
 - Baseline reference: ~74 minutes for epoch 1 (train ~42m + val ~32m).
 - With Drive I/O + 4 workers: ~5.25 s/iteration mid-epoch; epochs elongated and inconsistent.
 - Mitigations: use 2 workers, local dataset copy, regularized setup, or EfficientNet-B0.
+
+### Detailed Training Time Breakdown (ResNet50 Baseline)
+
+| Phase / Epoch | Train Duration | Val Duration | Notes |
+|---------------|---------------:|-------------:|-------|
+| Epoch 1       | ~42 min        | ~32 min      | Includes initial model + caching overhead |
+| Epoch 2       | ~5 min         | ~2.3 min     | After caching; faster I/O |
+| Epoch 3       | ~5 min (train) | ~2.4 min     | Validation degraded; overfitting intensified |
+| Drive-I/O worst case (observed mid-epoch) | >70 min (projected) | >30 min (projected) | When streaming directly from Drive with 4 workers and contention |
+
+**Observation:** After the first epoch warms caches, training becomes much faster if data access is stable. However, reading via Google Drive with high worker count can revert to slow per-iteration times (~5.25s/it). Copying the dataset locally plus reducing workers stabilizes throughput.
+
+### Test Set Results (Best Checkpoint – Epoch 1)
+
+| Metric            | Value |
+|-------------------|------:|
+| Accuracy          | 0.5818 |
+| Macro Precision   | 0.6219 |
+| Macro Recall      | 0.6152 |
+| Macro F1          | 0.5806 |
+| ROC AUC (macro)   | 0.6415 |
+
+Per-Class Detail:
+
+| Class      | Precision | Recall | F1     | Support |
+|------------|----------:|-------:|-------:|--------:|
+| notdrowsy  | 0.4886    | 0.7877 | 0.6031 |  8,846 |
+| drowsy     | 0.7552    | 0.4427 | 0.5581 | 13,087 |
+
+**Interpretation:** Model favors higher recall for notdrowsy and higher precision for drowsy, indicating a conservative drowsy classification (missed positives) under current training regime.
+
+### Figure References
+
+![Confusion Matrix (Test)](../reports/figures/confusion_matrix_test.png)
+![Confusion Matrix Normalized (Test)](../reports/figures/confusion_matrix_test_normalized.png)
+![ROC Curves (Test)](../reports/figures/roc_curves_test.png)
+<!-- Optional baseline comparison if generated -->
+<!-- ![Baseline Comparison](../reports/figures/comparison_baselines.png) -->
 
 ---
 
