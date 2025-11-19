@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-Successfully initiated baseline ResNet50 training on GPU with subject-exclusive data splits. Completed 3 epochs before observing severe overfitting behavior. **Best model achieved 57.72% validation Macro-F1 on epoch 1**, which is a reasonable baseline but indicates the model struggles to generalize from the training data.
+Successfully initiated baseline ResNet50 training on GPU with subject-exclusive data splits. Completed 3 epochs before observing severe overfitting behavior. **Best model achieved 57.72% validation Macro-F1 on epoch 1**, which is a reasonable baseline but indicates the model struggles to generalize from the training data. The saved best checkpoint (epoch 1) evaluated on the test set achieved **58.18% accuracy**, **0.5806 Macro-F1**, and **0.6415 ROC AUC (macro)**.
 
 **Key Finding:** Model exhibits classic overfitting pattern - high training accuracy (95%+) but declining validation performance (F1 dropping from 0.577 → 0.499). Recommending early termination and model adjustments before continuing.
 
