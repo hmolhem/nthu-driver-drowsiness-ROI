@@ -215,6 +215,35 @@ KeyboardInterrupt at trainer.train_epoch() → metrics_calc.update()
 
 ---
 
+## Test Evaluation (Best Checkpoint)
+
+Evaluated the saved best checkpoint (`epoch 1`) on the subject-exclusive test set using the evaluation CLI.
+
+- **Accuracy:** 58.18%
+- **Macro F1:** 0.5806
+- **ROC AUC (macro):** 0.6415
+
+Per-class metrics (from `sklearn` report):
+- notdrowsy — precision: 0.4886, recall: 0.7877, f1: 0.6031, support: 8,846
+- drowsy — precision: 0.7552, recall: 0.4427, f1: 0.5581, support: 13,087
+
+Figures (saved during evaluation):
+- Confusion Matrix (raw counts): `runs/baseline_resnet50/confusion_matrix_test.png`
+- Confusion Matrix (normalized): `runs/baseline_resnet50/confusion_matrix_test_normalized.png`
+- ROC Curves (per-class + chance): `runs/baseline_resnet50/roc_curves_test.png`
+
+Copies are also available under `reports/figures/` for convenient access in reports and slides.
+
+Preview (local render-only; images are generated artifacts and may be git-ignored):
+
+![Confusion Matrix (Test)](../reports/figures/confusion_matrix_test.png)
+
+![Confusion Matrix (Normalized)](../reports/figures/confusion_matrix_test_normalized.png)
+
+![ROC Curves (Test)](../reports/figures/roc_curves_test.png)
+
+---
+
 ## Recommendations for Next Steps
 
 ### Immediate Actions (Before Professor Meeting)
