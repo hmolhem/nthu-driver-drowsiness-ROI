@@ -54,6 +54,10 @@ baseline_results.zip
 reports/*.png
 reports/*.pdf
 reports/*.html
+reports/**/*.png
+reports/**/*.pdf
+reports/**/*.html
+reports/figures/
 
 # Notebooks (but keep Colab training notebook)
 .ipynb_checkpoints/
