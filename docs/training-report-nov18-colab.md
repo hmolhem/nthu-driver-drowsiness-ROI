@@ -195,6 +195,32 @@ KeyboardInterrupt at trainer.train_epoch() → metrics_calc.update()
 
 ---
 
+## Why We Stopped Training (Today)
+
+We intentionally interrupted training after observing sustained degradation on validation and significant time cost per epoch.
+
+- Overfitting worsened from epoch 1 onward; validation Macro-F1 dropped (0.5772 → 0.4987 → 0.4782).
+- With the dataset mounted from Google Drive and `num_workers=4`, iteration time spiked (e.g., ~5.25s/it seen mid-epoch), making epoch time highly variable and lengthy.
+- Continuing under these conditions would waste GPU time without improving generalization.
+
+Action: Stop current run, evaluate the best checkpoint (epoch 1), and resume later with speed-ups and stronger regularization.
+
+---
+
+## Time Consumption & Throughput Notes
+
+- Baseline (faster run): Epoch 1 took ~42 min (train) + ~32 min (val) ≈ ~74 min total.
+- Under Drive I/O and too many workers: mid-epoch logs showed ~5.25 s/it, implying ~70–90+ min just for the training phase depending on cache and contention.
+- Validation can also be slow with Drive I/O; reducing `num_workers` and moving data to local SSD (Colab VM) materially improves speed.
+
+Mitigations applied/planned:
+- Set `data.num_workers: 2` (Colab-friendly) and keep `pin_memory: true`.
+- Copy dataset from Drive to local path `datasets/archive` before training.
+- Use the regularized config (freeze backbone, higher dropout, lower LR, higher weight decay) to reduce overfitting.
+- Consider lighter model (EfficientNet-B0) for faster epochs.
+
+---
+
 ## Saved Artifacts
 
 ### Checkpoints
