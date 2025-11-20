@@ -62,21 +62,6 @@ Mitigation steps now in place: backbone freezing, increased dropout, stronger we
 
 ---
 
-## Part 2: Plan to Complete Before Final Presentation
-
-- Near-term experiments (this week):
-  - Train Regularized ResNet50 (Colab, local dataset copy, 2 workers); evaluate and export artifacts.
-  - Train EfficientNet-B0; evaluate; run comparison plots (`reports/figures/comparison_baselines.png`).
-- ROI phase: Train ROI-gated approach (`src/models/roi_gating.py`, `unet_segmentation.py`) focusing on eyes/mouth.
-- Reporting: Consolidate metrics/plots, per-class breakdowns; finalize slides.
-- Practical Colab steps:
-  - Copy dataset to `/content/nthu-driver-drowsiness-ROI/datasets/archive`, patch `num_workers: 2`, run `--device cuda`.
-- Milestones:
-  - Week 1 (Nov 19–24): Complete regularized + EfficientNet runs and comparisons.
-  - Week 2: ROI training/evaluation; finalize analysis and slides.
-
----
-
 ## Project Snapshot
 
 - Key configs: `configs/baseline_resnet50.yaml`, `configs/baseline_resnet50_regularized.yaml`, `configs/baseline_efficientnet.yaml`.
@@ -129,6 +114,72 @@ Per-Class Detail:
 ![ROC Curves (Test)](../reports/figures/roc_curves_test.png)
 <!-- Optional baseline comparison if generated -->
 <!-- ![Baseline Comparison](../reports/figures/comparison_baselines.png) -->
+
+---
+---
+
+## Part 2: Collaboration & Next Steps (30%)
+
+### 1. How We Communicate or Share Progress
+
+Our team coordinates mainly through online messaging and short meetings to align on tasks. We use the shared GitHub repository ([nthu-driver-drowsiness-ROI](https://github.com/hmolhem/nthu-driver-drowsiness-ROI)) as our central place to push code, track commits, and review changes. When needed, we also share experiment logs and notebooks (e.g., from Colab) so that everyone can see the latest results and reproduce runs on their own machines.
+
+Hossein Molhem coordinates the project and handles core implementation. My role focuses on presentation preparation and results communication.
+
+### 2. What I Will Personally Complete Before the Final Presentation
+
+**Assigned Tasks (Presentation & Visualization):**
+
+- **Week 1 (Nov 19–24):**
+  - Design presentation slide structure: Introduction, Problem Statement, Methodology, Results, Conclusion
+  - Create visualizations comparing baseline models (ResNet50, Regularized ResNet50, EfficientNet-B0)
+  - Develop infographics explaining ROI-gated approach and architecture diagrams
+  - Generate performance comparison charts (accuracy, F1-score, ROC curves across models)
+  - Design training progress visualizations (loss curves, overfitting analysis, time consumption breakdown)
+  - Prepare dataset overview slides with subject-exclusive split explanation
+
+- **Week 2 (Nov 25–Dec 1):**
+  - Integrate ROI model results from Tasfia into presentation slides
+  - Create final comparison tables: Baseline vs. ROI performance metrics
+  - Develop demonstration materials: sample predictions, attention visualizations, confusion matrices
+  - Prepare technical slides explaining challenges (overfitting, training time) and solutions
+  - Assemble final presentation deck with consistent formatting and clear narrative flow
+  - Coordinate presentation rehearsal with team and refine based on feedback
+  - Prepare speaker notes and timing for each section
+
+- **Final Report Assembly:**
+  - Consolidate technical documentation from all team members
+  - Format final project report with sections: Abstract, Introduction, Methodology, Experiments, Results, Conclusion
+  - Integrate figures, tables, and code snippets from repository
+  - Proofread and ensure consistent terminology and formatting
+  - Generate PDF version for submission
+
+- **Final Deliverables:**
+  - Complete presentation slides (PowerPoint/Google Slides)
+  - Final project report (PDF)
+  - Supporting visualization materials
+  - Presentation script and timing plan
+
+### 3. Coordination or Workload Challenges
+
+**Team Coordination:**
+- Timing dependency: Presentation slides require completed experimental results from Hossein and Tasfia
+- Ensuring technical accuracy in visualizations and explanations while making content accessible
+- Coordinating presentation rehearsal timing across team schedules
+
+**Presentation Challenges:**
+- Balancing technical depth with clarity: explaining ROI approach without overwhelming audience
+- Time constraint: fitting comprehensive project overview into presentation time limit
+- Visual design: creating professional, publication-quality figures from raw experimental outputs
+
+**Mitigation:**
+- Early slide template creation to parallelize content development
+- Regular check-ins with Hossein and Tasfia to stay updated on latest results
+- Iterative slide review process with team feedback before final version
+- Preparing backup slides with additional details in case of questions
+
+**Current Status:**
+Work is on track. Baseline results are available for initial slide development. ROI results expected by end of Week 1, allowing Week 2 for integration and refinement.
 
 ---
 

@@ -60,20 +60,6 @@ Mitigation steps now in place: backbone freezing, increased dropout, stronger we
 
 **Challenge: Training Time (Bold)** – In addition to overfitting, the throughput slowdown (≈5.25 s/iteration mid-epoch when reading from Drive with 4 workers) inflated epoch duration, making rapid experimentation impractical until mitigations (local copy, fewer workers) were applied.
 
----
-
-## Part 2: Plan to Complete Before Final Presentation
-
-- Near-term experiments (this week):
-  - Train Regularized ResNet50 (Colab, local dataset copy, 2 workers); evaluate and export artifacts.
-  - Train EfficientNet-B0; evaluate; run comparison plots (`reports/figures/comparison_baselines.png`).
-- ROI phase: Train ROI-gated approach (`src/models/roi_gating.py`, `unet_segmentation.py`) focusing on eyes/mouth.
-- Reporting: Consolidate metrics/plots, per-class breakdowns; finalize slides.
-- Practical Colab steps:
-  - Copy dataset to `/content/nthu-driver-drowsiness-ROI/datasets/archive`, patch `num_workers: 2`, run `--device cuda`.
-- Milestones:
-  - Week 1 (Nov 19–24): Complete regularized + EfficientNet runs and comparisons.
-  - Week 2: ROI training/evaluation; finalize analysis and slides.
 
 ---
 
@@ -132,6 +118,59 @@ Per-Class Detail:
 
 ---
 
+---
+
+## Part 2: Collaboration & Next Steps (30%)
+
+### 1. How We Communicate or Share Progress
+
+Our team coordinates mainly through online messaging and short meetings to align on tasks. We use the shared GitHub repository ([nthu-driver-drowsiness-ROI](https://github.com/hmolhem/nthu-driver-drowsiness-ROI)) as our central place to push code, track commits, and review changes. When needed, we also share experiment logs and notebooks (e.g., from Colab) so that everyone can see the latest results and reproduce runs on their own machines.
+
+Hossein Molhem serves as the project coordinator, having established the baseline implementation and repository structure. My role focuses on advancing the ROI-based modeling approach.
+
+### 2. What I Will Personally Complete Before the Final Presentation
+
+**Assigned Tasks (ROI Model Development & Validation):**
+
+- **Week 1 (Nov 19–24):**
+  - Implement ROI extraction module leveraging existing eye/mouth mask generation code (`src/masks/build_pseudo_masks.py`)
+  - Develop ROI-gated attention mechanism (`src/models/roi_gating.py`) that integrates with baseline CNN backbones
+  - Create U-Net segmentation module (`src/models/unet_segmentation.py`) for end-to-end ROI learning
+  - Design ROI-specific configuration file (`configs/roi_resnet50.yaml`)
+  - Set up ROI training pipeline with multitask loss (classification + segmentation)
+
+- **Week 2 (Nov 25–Dec 1):**
+  - Train ROI-gated ResNet50 model on Colab GPU (using optimized data loading from Hossein's baseline)
+  - Evaluate ROI model on test set with same metrics framework (accuracy, F1, ROC AUC)
+  - Compare ROI vs. baseline approaches: analyze performance gain, computational overhead, interpretability
+  - Generate ROI-specific visualizations: attention maps, segmentation quality, region-wise contributions
+  - Document ROI implementation details and ablation study results
+  - Prepare technical content for final presentation (ROI methodology slides)
+
+- **Final Deliverables:**
+  - Working ROI model with trained checkpoints
+  - ROI evaluation results and comparison tables
+  - Technical documentation explaining ROI approach
+  - Contribution to final presentation (ROI sections)
+
+### 3. Coordination or Workload Challenges
+
+**Team Coordination:**
+- Working closely with Hossein to integrate ROI components into existing training infrastructure
+- Coordinating with Olasubomi to ensure ROI visualizations are ready for presentation slides
+- Timeline dependency: ROI experiments depend on baseline results and optimized Colab setup from Hossein
+
+**Technical Challenges:**
+- ROI mask generation quality: pseudo-masks may require refinement for optimal performance
+- Multitask training stability: balancing classification and segmentation losses requires careful tuning
+- Computational budget: ROI models add overhead; need to ensure training fits within Colab GPU quota
+
+**Mitigation:**
+- Leveraging Hossein's optimized Colab workflow (local dataset copy, efficient data loading) to minimize training time
+- Starting with simpler ROI gating before full U-Net if time becomes constrained
+- Regular progress updates via GitHub commits and team check-ins to surface blockers early
+
+---
 ## Export to PDF (Options)
 
 - VS Code: Open this file and use "Markdown: Print to PDF" (or the Markdown PDF extension).

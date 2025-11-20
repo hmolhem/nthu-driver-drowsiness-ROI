@@ -60,20 +60,6 @@ Mitigation steps now in place: backbone freezing, increased dropout, stronger we
 
 **Challenge: Training Time (Bold)** – In addition to overfitting, the throughput slowdown (≈5.25 s/iteration mid-epoch when reading from Drive with 4 workers) inflated epoch duration, making rapid experimentation impractical until mitigations (local copy, fewer workers) were applied.
 
----
-
-## Part 2: Plan to Complete Before Final Presentation
-
-- Near-term experiments (this week):
-  - Train Regularized ResNet50 (Colab, local dataset copy, 2 workers); evaluate and export artifacts.
-  - Train EfficientNet-B0; evaluate; run comparison plots (`reports/figures/comparison_baselines.png`).
-- ROI phase: Train ROI-gated approach (`src/models/roi_gating.py`, `unet_segmentation.py`) focusing on eyes/mouth.
-- Reporting: Consolidate metrics/plots, per-class breakdowns; finalize slides.
-- Practical Colab steps:
-  - Copy dataset to `/content/nthu-driver-drowsiness-ROI/datasets/archive`, patch `num_workers: 2`, run `--device cuda`.
-- Milestones:
-  - Week 1 (Nov 19–24): Complete regularized + EfficientNet runs and comparisons.
-  - Week 2: ROI training/evaluation; finalize analysis and slides.
 
 ---
 
@@ -132,6 +118,56 @@ Per-Class Detail:
 
 ---
 
+---
+
+## Part 2: Collaboration & Next Steps (30%)
+
+### 1. How We Communicate or Share Progress
+
+Our team coordinates mainly through online messaging and short meetings to align on tasks. We use the shared GitHub repository ([nthu-driver-drowsiness-ROI](https://github.com/hmolhem/nthu-driver-drowsiness-ROI)) as our central place to push code, track commits, and review changes. When needed, we also share experiment logs and notebooks (e.g., from Colab) so that everyone can see the latest results and reproduce runs on their own machines.
+
+As the project coordinator, I set up the repository structure, established the baseline training pipeline, and defined task assignments for the team.
+
+### 2. What I Will Personally Complete Before the Final Presentation
+
+**Completed Work (as coordinator and primary implementer):**
+- ✅ Project repository setup and folder structure organization
+- ✅ Data preparation pipeline with subject-exclusive splits validation
+- ✅ Baseline ResNet50 model implementation and initial training (3 epochs on Colab GPU)
+- ✅ Evaluation framework (`src/eval/evaluate_model.py`) with comprehensive metrics, confusion matrices, ROC curves
+- ✅ Colab training notebook (`notebooks/colab_gpu_training.ipynb`) with speed optimizations
+- ✅ Overfitting analysis and training time profiling (identified ~5.25s/iter Drive I/O bottleneck)
+- ✅ Regularized baseline config design (freeze backbone, dropout 0.7, reduced LR/WD)
+- ✅ EfficientNet-B0 lightweight baseline configuration
+- ✅ Technical documentation (training reports, daily logs, progress reports)
+- ✅ Test set evaluation with detailed per-class metrics (Acc: 0.5818, Macro-F1: 0.5806, ROC AUC: 0.6415)
+
+**Remaining Tasks Before Final Presentation:**
+- **Week 1 (Nov 19–24):**
+  - Train and evaluate Regularized ResNet50 baseline on Colab (local dataset copy, 2 workers)
+  - Train and evaluate EfficientNet-B0 baseline
+  - Generate baseline comparison plots (`comparison_baselines.png`)
+  - Coordinate with Tasfia on ROI model integration
+  - Review Olasubomi's presentation slides and visualizations
+
+- **Week 2 (Nov 25–Dec 1):**
+  - Integrate ROI-gated model results (from Tasfia)
+  - Perform final model comparison and analysis
+  - Prepare technical demonstration materials
+  - Coordinate final presentation rehearsal with team
+  - Finalize GitHub repository documentation and release notes
+
+### 3. Coordination or Workload Challenges
+
+**Challenges Encountered:**
+- **Time-consuming Colab training:** Initial baseline training suffered from severe Drive I/O bottleneck (~5.25s/iteration) and overfitting (Val F1 dropped from 0.5772 to 0.4782 by epoch 3). Mitigated by implementing local dataset copying, reducing workers to 2, and designing regularized configs.
+- **Task coordination across time zones:** Team members have different schedules; resolved through asynchronous GitHub-based workflow and flexible meeting times.
+- **Balancing implementation depth vs. timeline:** As primary implementer, had to prioritize baseline establishment over immediate ROI experimentation to ensure solid foundation for team.
+
+**Current Status:**
+Work is proceeding as planned. Clear task delegation (Tasfia: ROI models; Olasubomi: presentation/visualization) allows parallel progress while I coordinate integration and maintain the codebase.
+
+---
 ## Export to PDF (Options)
 
 - VS Code: Open this file and use "Markdown: Print to PDF" (or the Markdown PDF extension).
