@@ -1,5 +1,5 @@
 # EE 6770 – Final Project: Individual Progress Report
-**Student:** Hossein Molhem
+**Student:** Olasubomi Rufai
 **Project:** NTHU Driver Drowsiness Detection with ROI
 **Date:** November 19, 2025
 
