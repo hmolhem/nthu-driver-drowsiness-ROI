@@ -10,7 +10,7 @@ model:
   dropout: 0.2
 
 data:
-  data_root: "datasets/archive"
+  data_root: "datasets"
   train_csv: "data/splits/train.csv"
   val_csv: "data/splits/val.csv"
   test_csv: "data/splits/test.csv"
