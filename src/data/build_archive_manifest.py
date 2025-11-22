@@ -115,7 +115,7 @@ def build_manifest(data_root, output_path):
 
 if __name__ == '__main__':
     # Define paths
-    data_root = Path(__file__).parent.parent.parent / 'datasets' / 'archive'
+    data_root = Path(__file__).parent.parent.parent / 'datasets'
     output_path = Path(__file__).parent.parent.parent / 'data' / 'manifests' / 'archive_manifest.csv'
     
     print(f"Data root: {data_root}")

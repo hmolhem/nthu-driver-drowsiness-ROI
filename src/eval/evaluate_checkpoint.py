@@ -133,7 +133,7 @@ def main():
     image_size = config.get("data", {}).get("image_size", 224)
     val_transform = get_val_transforms(image_size)
     test_csv = config.get("data", {}).get("test_csv")
-    data_root = config.get("data", {}).get("data_root", "datasets/archive")
+    data_root = config.get("data", {}).get("data_root", "datasets")
     if test_csv is None:
         raise ValueError("Config missing data.test_csv")
 

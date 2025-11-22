@@ -26,7 +26,7 @@ class DrowsinessDataset(Dataset):
     def __init__(
         self,
         csv_path,
-        data_root='datasets/archive',
+        data_root='datasets',
         transform=None,
         label_map=None
     ):
@@ -114,7 +114,7 @@ def create_dataloaders(
     train_csv,
     val_csv,
     test_csv,
-    data_root='datasets/archive',
+    data_root='datasets',
     train_transform=None,
     val_transform=None,
     batch_size=32,

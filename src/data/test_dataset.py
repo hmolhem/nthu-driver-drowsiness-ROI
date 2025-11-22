@@ -17,7 +17,7 @@ def test_dataset():
     # Test single dataset
     train_dataset = DrowsinessDataset(
         csv_path='data/splits/train.csv',
-        data_root='datasets/archive',
+        data_root='datasets',
         transform=get_val_transforms(224)
     )
     
