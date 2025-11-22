@@ -63,3 +63,4 @@ reports/figures/
 .ipynb_checkpoints/
 notebooks/*
 !notebooks/colab_training.ipynb
+!notebooks/colab_gpu_training_01.ipynb
