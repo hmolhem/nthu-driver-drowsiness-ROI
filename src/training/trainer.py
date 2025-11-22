@@ -3,6 +3,11 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+try:
+    from torch.cuda.amp import autocast, GradScaler
+except ImportError:  # CPU-only or older torch
+    autocast = None
+    GradScaler = None
 from pathlib import Path
 from tqdm import tqdm
 import json
@@ -38,7 +43,23 @@ class Trainer:
         self.config = config
         self.device = device
         
-        # Setup training components
+        # Optional AMP
+        self.use_amp = bool(self.config.get('training', {}).get('amp', {}).get('enabled', False) and device.startswith('cuda') and GradScaler is not None)
+        self.scaler = GradScaler(enabled=self.use_amp) if self.use_amp else None
+
+        # Freeze backbone if requested (keep classifier/trainable head)
+        if self.config.get('model', {}).get('freeze_backbone', False):
+            frozen = 0
+            for name, param in self.model.named_parameters():
+                # Heuristic: keep final classification layer trainable (resnet: fc, efficientnet: classifier)
+                if name.startswith('fc') or name.startswith('classifier'):
+                    continue
+                param.requires_grad = False
+                frozen += 1
+            if frozen:
+                print(f"Frozen backbone parameters: {frozen}")
+
+        # Setup training components (after freezing so optimizer excludes frozen params)
         self.setup_optimizer()
         self.setup_criterion()
         self.setup_scheduler()
@@ -61,19 +82,11 @@ class Trainer:
         lr = train_config.get('learning_rate', 0.001)
         weight_decay = train_config.get('weight_decay', 0.0)
         
+        params = [p for p in self.model.parameters() if p.requires_grad]
         if optimizer_name == 'adam':
-            self.optimizer = optim.Adam(
-                self.model.parameters(),
-                lr=lr,
-                weight_decay=weight_decay
-            )
+            self.optimizer = optim.Adam(params, lr=lr, weight_decay=weight_decay)
         elif optimizer_name == 'sgd':
-            self.optimizer = optim.SGD(
-                self.model.parameters(),
-                lr=lr,
-                weight_decay=weight_decay,
-                momentum=0.9
-            )
+            self.optimizer = optim.SGD(params, lr=lr, weight_decay=weight_decay, momentum=0.9)
         else:
             raise ValueError(f"Unsupported optimizer: {optimizer_name}")
     
@@ -125,23 +138,32 @@ class Trainer:
         
         # KERAS COMPARISON: This loop replaces the magic inside model.fit()
         for batch_idx, (images, labels, metadata) in enumerate(pbar):
-            images = images.to(self.device)  # Move to GPU if available
+            images = images.to(self.device)
             labels = labels.to(self.device)
-            
-            # Forward pass (like Keras does internally)
-            self.optimizer.zero_grad()  # Clear gradients (Keras does this automatically)
-            outputs = self.model(images)  # Forward pass
-            loss = self.criterion(outputs, labels)  # Compute loss
-            
-            # Backward pass (like Keras does internally)
-            loss.backward()  # Compute gradients (Keras does this automatically)
-            
-            # Gradient clipping (optional, like Keras clipnorm parameter)
-            if self.config.get('training', {}).get('gradient_clipping', {}).get('enabled', False):
-                max_norm = self.config['training']['gradient_clipping'].get('max_norm', 1.0)
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm)
-            
-            self.optimizer.step()  # Update weights (Keras does this automatically)
+
+            self.optimizer.zero_grad()
+            if self.use_amp and autocast is not None:
+                with autocast():
+                    outputs = self.model(images)
+                    loss = self.criterion(outputs, labels)
+            else:
+                outputs = self.model(images)
+                loss = self.criterion(outputs, labels)
+
+            if self.use_amp and self.scaler is not None:
+                self.scaler.scale(loss).backward()
+                if self.config.get('training', {}).get('gradient_clipping', {}).get('enabled', False):
+                    max_norm = self.config['training']['gradient_clipping'].get('max_norm', 1.0)
+                    self.scaler.unscale_(self.optimizer)
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm)
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+            else:
+                loss.backward()
+                if self.config.get('training', {}).get('gradient_clipping', {}).get('enabled', False):
+                    max_norm = self.config['training']['gradient_clipping'].get('max_norm', 1.0)
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm)
+                self.optimizer.step()
             
             # Track metrics
             preds = outputs.argmax(dim=1)

@@ -1,0 +1,57 @@
+# Ultrafast GPU baseline ResNet50 for rapid experimentation
+# Focus: high throughput (few epochs) to quickly gauge config or data changes
+
+model:
+  name: "resnet50"
+  architecture: "resnet50"
+  pretrained: true
+  num_classes: 2
+  freeze_backbone: true  # freeze all except final classifier layer
+
+data:
+  data_root: "datasets"
+  train_csv: "data/splits/train.csv"
+  val_csv: "data/splits/val.csv"
+  test_csv: "data/splits/test.csv"
+  image_size: 128          # small images for speed
+  batch_size: 64           # leverage GPU parallelism
+  num_workers: 4           # increase loader throughput
+  pin_memory: true
+
+augmentation:
+  enabled: true
+  horizontal_flip: 0.5     # keep only light augmentation for speed
+  # heavier transforms (color jitter, affine) intentionally omitted
+
+training:
+  epochs: 3                # short run; extend later if stable
+  optimizer: "adam"
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+  lr_scheduler:
+    type: "reduce_on_plateau"
+    mode: "max"
+    factor: 0.5
+    patience: 1
+    min_lr: 0.000001
+  loss:
+    type: "weighted_cross_entropy"
+    use_class_weights: true
+  early_stopping:
+    enabled: false         # disabled for tiny epoch count
+  gradient_clipping:
+    enabled: true
+    max_norm: 1.0
+  amp:
+    enabled: true          # mixed precision for speed
+
+logging:
+  experiment_name: "baseline_resnet50_ultrafast_gpu"
+  log_dir: "runs"
+  save_dir: "checkpoints"
+  log_interval: 0          # disable interim val snapshots
+  save_best_only: true
+  save_last: true
+
+seed: 42
+device: "cuda"
