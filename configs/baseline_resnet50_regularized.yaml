@@ -1,0 +1,70 @@
+# Regularized ResNet50 Configuration (Colab GPU)
+# Goal: Mitigate immediate overfitting, improve generalization
+
+model:
+  name: "resnet50_regularized"
+  architecture: "resnet50"
+  pretrained: true
+  num_classes: 2
+  freeze_backbone: true        # Freeze backbone to reduce overfitting
+  dropout: 0.7                 # Strong dropout before classifier head
+
+data:
+  # NOTE: For Colab, if you created: ln -s /content/drive/MyDrive/datasets datasets
+  # and images are directly under datasets/drowsy, datasets/notdrowsy, set data_root to "datasets".
+  data_root: "datasets"        # Adjusted from previous "datasets/archive"
+  train_csv: "data/splits/train.csv"
+  val_csv: "data/splits/val.csv"
+  test_csv: "data/splits/test.csv"
+  image_size: 224
+  batch_size: 32
+  num_workers: 2               # Lower workers for Colab stability
+  pin_memory: true
+
+augmentation:
+  enabled: true
+  horizontal_flip: 0.5
+  color_jitter:
+    brightness: 0.3
+    contrast: 0.3
+    saturation: 0.3
+    hue: 0.1
+  rotation_degrees: 15
+  random_affine:
+    translate: [0.1, 0.1]
+    scale: [0.9, 1.1]
+
+training:
+  epochs: 30                   # Fewer epochs with early stopping
+  optimizer: "adam"
+  learning_rate: 0.00005       # Lower LR for frozen backbone fine-tuning
+  weight_decay: 0.0005         # Stronger regularization (5x previous)
+  lr_scheduler:
+    type: "reduce_on_plateau"
+    mode: "max"
+    factor: 0.5
+    patience: 3
+    min_lr: 0.000001
+  loss:
+    type: "weighted_cross_entropy"
+    use_class_weights: true
+  early_stopping:
+    enabled: true
+    patience: 3                # Aggressive early stop
+    monitor: "val_macro_f1"
+    mode: "max"
+    min_delta: 0.0001
+  gradient_clipping:
+    enabled: true
+    max_norm: 1.0
+
+logging:
+  experiment_name: "resnet50_regularized"
+  log_dir: "runs"
+  save_dir: "checkpoints"
+  log_interval: 0              # Set >0 to enable interim val snapshots
+  save_best_only: true
+  save_last: true
+
+seed: 42
+device: "cuda"  # Override via CLI if needed
