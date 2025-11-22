@@ -6,6 +6,7 @@ import torch.optim as optim
 from pathlib import Path
 from tqdm import tqdm
 import json
+import csv
 
 from ..training.metrics import MetricsCalculator, AverageMeter, calculate_macro_f1
 
@@ -178,7 +179,8 @@ class Trainer:
         
         pbar = tqdm(self.val_loader, desc=f'Epoch {self.current_epoch} [Val]')
         
-        for images, labels, metadata in pbar:
+        log_interval = self.config.get('logging', {}).get('log_interval', 0)
+        for batch_idx, (images, labels, metadata) in enumerate(pbar):
             images = images.to(self.device)
             labels = labels.to(self.device)
             
@@ -190,10 +192,55 @@ class Trainer:
             loss_meter.update(loss.item(), images.size(0))
             
             pbar.set_postfix({'loss': f'{loss_meter.avg:.4f}'})
+
+            # Optional intermediate validation snapshot (does not include final metrics)
+            if log_interval and batch_idx > 0 and (batch_idx % log_interval == 0):
+                interim = metrics_calc.compute()
+                interim['loss'] = loss_meter.avg
+                snapshot_path = self.save_dir / f'{self.experiment_name}_val_interim_batch{batch_idx}_epoch{self.current_epoch}.json'
+                # Convert numpy arrays (e.g., confusion matrix) to lists for JSON serialization
+                serializable = {}
+                for k, v in interim.items():
+                    if hasattr(v, 'tolist'):
+                        serializable[k] = v.tolist()
+                    else:
+                        serializable[k] = v
+                with open(snapshot_path, 'w') as f:
+                    json.dump(serializable, f, indent=2)
+
         
         val_metrics = metrics_calc.compute()
         val_metrics['loss'] = loss_meter.avg
-        
+        # Add classification report text for detailed per-class view
+        val_metrics['classification_report'] = metrics_calc.get_classification_report()
+
+        # Persist full validation metrics for this epoch
+        serializable_val = {}
+        for k, v in val_metrics.items():
+            if hasattr(v, 'tolist'):
+                serializable_val[k] = v.tolist()
+            else:
+                serializable_val[k] = v
+        val_json_path = self.save_dir / f'{self.experiment_name}_val_epoch{self.current_epoch}.json'
+        with open(val_json_path, 'w') as f:
+            json.dump(serializable_val, f, indent=2)
+
+        # Confusion matrix CSV for easy inspection
+        cm = val_metrics.get('confusion_matrix')
+        if cm is not None:
+            cm_csv_path = self.save_dir / f'{self.experiment_name}_val_confusion_epoch{self.current_epoch}.csv'
+            class_names = self.config.get('data', {}).get('class_names', ['notdrowsy','drowsy'])
+            with open(cm_csv_path, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow([''] + class_names)
+                for i, row in enumerate(cm):
+                    writer.writerow([class_names[i]] + list(row))
+
+        # Also maintain a latest symlink-style JSON (overwrite each epoch)
+        latest_json_path = self.save_dir / f'{self.experiment_name}_val_latest.json'
+        with open(latest_json_path, 'w') as f:
+            json.dump(serializable_val, f, indent=2)
+
         return val_metrics
     
     def save_checkpoint(self, metrics, is_best=False):
@@ -237,6 +284,17 @@ class Trainer:
             
             # Train
             train_metrics = self.train_epoch()
+
+            # Persist train metrics for epoch
+            serializable_train = {}
+            for k, v in train_metrics.items():
+                if hasattr(v, 'tolist'):
+                    serializable_train[k] = v.tolist()
+                else:
+                    serializable_train[k] = v
+            train_json_path = self.save_dir / f'{self.experiment_name}_train_epoch{self.current_epoch}.json'
+            with open(train_json_path, 'w') as f:
+                json.dump(serializable_train, f, indent=2)
             
             # Validate
             val_metrics = self.validate()
