@@ -1,0 +1,71 @@
+# EfficientNet-B0 Fast Configuration (Optimized)
+# Optimized for speed: AMP, larger batch size, more workers, torch.compile
+
+model:
+  name: "efficientnet_b0_fast"
+  architecture: "efficientnet_b0"
+  pretrained: true
+  num_classes: 2
+  freeze_backbone: false
+  dropout: 0.5
+
+data:
+  data_root: "datasets"
+  train_csv: "data/splits/train.csv"
+  val_csv: "data/splits/val.csv"
+  test_csv: "data/splits/test.csv"
+  image_size: 224
+  batch_size: 64                # Increased from 32
+  num_workers: 8                # Increased from 2
+  pin_memory: true
+
+augmentation:
+  enabled: true
+  horizontal_flip: 0.5
+  color_jitter:
+    brightness: 0.25
+    contrast: 0.25
+    saturation: 0.25
+    hue: 0.08
+  rotation_degrees: 10
+  random_affine:
+    translate: [0.08, 0.08]
+    scale: [0.95, 1.05]
+
+training:
+  epochs: 40
+  optimizer: "adamw"            # Switched to AdamW
+  learning_rate: 0.0001
+  weight_decay: 0.01            # Standard for AdamW
+  compile: false                # Disable torch.compile (Windows compatibility issue)
+  amp:
+    enabled: true               # Enable AMP
+  lr_scheduler:
+    type: "reduce_on_plateau"
+    mode: "max"
+    factor: 0.5
+    patience: 4
+    min_lr: 0.000001
+  loss:
+    type: "weighted_cross_entropy"
+    use_class_weights: true
+  early_stopping:
+    enabled: true
+    patience: 6
+    monitor: "val_macro_f1"
+    mode: "max"
+    min_delta: 0.0001
+  gradient_clipping:
+    enabled: true
+    max_norm: 1.0
+
+logging:
+  experiment_name: "efficientnet_b0_fast"
+  log_dir: "runs"
+  save_dir: "checkpoints"
+  log_interval: 0
+  save_best_only: true
+  save_last: true
+
+seed: 42
+device: "cuda"

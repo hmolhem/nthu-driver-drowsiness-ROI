@@ -1,0 +1,71 @@
+# ResNet18 CPU Fast Configuration
+# Optimized for CPU speed: Smaller image size, simpler model, fewer epochs
+
+model:
+  name: "resnet18_cpu_fast"
+  architecture: "resnet18"
+  pretrained: true
+  num_classes: 2
+  freeze_backbone: false
+  dropout: 0.5
+
+data:
+  data_root: "datasets"
+  train_csv: "data/splits/train.csv"
+  val_csv: "data/splits/val.csv"
+  test_csv: "data/splits/test.csv"
+  image_size: 128               # Reduced from 224 for speed
+  batch_size: 32
+  num_workers: 4
+  pin_memory: true
+
+augmentation:
+  enabled: true
+  horizontal_flip: 0.5
+  color_jitter:
+    brightness: 0.25
+    contrast: 0.25
+    saturation: 0.25
+    hue: 0.08
+  rotation_degrees: 10
+  random_affine:
+    translate: [0.08, 0.08]
+    scale: [0.95, 1.05]
+
+training:
+  epochs: 10                    # Reduced from 40
+  optimizer: "adam"
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  compile: false
+  amp:
+    enabled: false              # AMP not useful on CPU
+  lr_scheduler:
+    type: "reduce_on_plateau"
+    mode: "max"
+    factor: 0.5
+    patience: 2
+    min_lr: 0.000001
+  loss:
+    type: "weighted_cross_entropy"
+    use_class_weights: true
+  early_stopping:
+    enabled: true
+    patience: 3
+    monitor: "val_macro_f1"
+    mode: "max"
+    min_delta: 0.0001
+  gradient_clipping:
+    enabled: true
+    max_norm: 1.0
+
+logging:
+  experiment_name: "resnet18_cpu_fast"
+  log_dir: "runs"
+  save_dir: "checkpoints"
+  log_interval: 0
+  save_best_only: true
+  save_last: true
+
+seed: 42
+device: "cpu"

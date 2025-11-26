@@ -47,6 +47,11 @@ class Trainer:
         self.use_amp = bool(self.config.get('training', {}).get('amp', {}).get('enabled', False) and device.startswith('cuda') and GradScaler is not None)
         self.scaler = GradScaler(enabled=self.use_amp) if self.use_amp else None
 
+        # Optional torch.compile (PyTorch 2.0+)
+        if self.config.get('training', {}).get('compile', False) and hasattr(torch, 'compile'):
+            print("Enabling torch.compile() for faster training...")
+            self.model = torch.compile(self.model)
+
         # Freeze backbone if requested (keep classifier/trainable head)
         if self.config.get('model', {}).get('freeze_backbone', False):
             frozen = 0
@@ -87,6 +92,8 @@ class Trainer:
             self.optimizer = optim.Adam(params, lr=lr, weight_decay=weight_decay)
         elif optimizer_name == 'sgd':
             self.optimizer = optim.SGD(params, lr=lr, weight_decay=weight_decay, momentum=0.9)
+        elif optimizer_name == 'adamw':
+            self.optimizer = optim.AdamW(params, lr=lr, weight_decay=weight_decay)
         else:
             raise ValueError(f"Unsupported optimizer: {optimizer_name}")
     
