@@ -76,8 +76,9 @@ def main():
     print("\nCreating data transforms...")
     image_size = config.data.get('image_size', 224)
     augment = config.augmentation.get('enabled', True)
+    augment_config = config.augmentation if augment else None
     
-    train_transform = get_train_transforms(image_size, augment=augment)
+    train_transform = get_train_transforms(image_size, augment=augment, augment_config=augment_config)
     val_transform = get_val_transforms(image_size)
     
     # Create dataloaders

@@ -12,7 +12,7 @@ from torchvision import transforms
 import numpy as np
 
 
-def get_train_transforms(image_size=224, augment=True):
+def get_train_transforms(image_size=224, augment=True, augment_config=None):
     """
     Get training data transforms with optional augmentation.
     
@@ -30,6 +30,7 @@ def get_train_transforms(image_size=224, augment=True):
     Args:
         image_size: Target image size (default: 224 for ResNet/EfficientNet)
         augment: Whether to apply data augmentation
+        augment_config: Dictionary of augmentation parameters
     
     Returns:
         torchvision.transforms.Compose object
@@ -39,22 +40,37 @@ def get_train_transforms(image_size=224, augment=True):
     ]
     
     if augment:
+        # Default config if none provided
+        config = augment_config or {}
+        
         # KERAS COMPARISON: These replace ImageDataGenerator augmentation params
         transform_list.extend([
-            transforms.RandomHorizontalFlip(p=0.5),  # Like horizontal_flip=True
-            transforms.ColorJitter(  # Like brightness_range, etc.
-                brightness=0.2,
-                contrast=0.2,
-                saturation=0.2,
-                hue=0.1
+            transforms.RandomHorizontalFlip(p=config.get('horizontal_flip', 0.5)),
+            
+            transforms.ColorJitter(
+                brightness=config.get('color_jitter', 0.3),
+                contrast=config.get('color_jitter', 0.3),
+                saturation=config.get('color_jitter', 0.3),
+                hue=config.get('hue', 0.1)
             ),
-            transforms.RandomRotation(degrees=10),  # Like rotation_range=10
-            transforms.RandomAffine(  # Like width_shift_range, zoom_range
+            
+            transforms.RandomRotation(degrees=config.get('rotation_degrees', 15)),
+            
+            transforms.RandomAffine(
                 degrees=0,
-                translate=(0.1, 0.1),
-                scale=(0.9, 1.1)
+                translate=config.get('translate', (0.1, 0.1)),
+                scale=config.get('scale', (0.85, 1.15))
             ),
         ])
+        
+        # Optional blur
+        if config.get('blur_enabled', False):
+            transform_list.append(
+                transforms.GaussianBlur(
+                    kernel_size=config.get('blur_kernel', 3),
+                    sigma=config.get('blur_sigma', (0.1, 2.0))
+                )
+            )
     
     transform_list.extend([
         transforms.ToTensor(),  # Converts PIL Image to tensor AND scales [0,255] -> [0,1] (like rescale=1./255)

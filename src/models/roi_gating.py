@@ -1,121 +1,76 @@
 """
-ROI (Region of Interest) Gating Module - Future Implementation
+ROI (Region of Interest) Gating Module.
 
-This module will implement attention-based ROI gating for focusing on 
+This module implements attention-based ROI gating for focusing on 
 facial regions (eyes, mouth) critical for drowsiness detection.
-
-Planned Features:
------------------
-1. Spatial Attention Mechanism
-   - Learn attention weights for different facial regions
-   - Focus on eyes (blink detection) and mouth (yawning)
-   - Soft gating vs hard gating options
-
-2. Multi-Region Processing
-   - Separate feature extractors for each ROI
-   - Eyes region: Detect slow blinks, eye closure
-   - Mouth region: Detect yawning, mouth opening
-   - Face region: Detect head nodding, pose changes
-
-3. Integration with Baseline Models
-   - Add ROI gates after feature extraction
-   - Weighted fusion of ROI features
-   - End-to-end trainable
-
-Implementation Plan:
--------------------
-Phase 1: Pseudo-mask generation (using facial landmarks)
-Phase 2: ROI pooling and feature extraction
-Phase 3: Attention mechanism and gating
-Phase 4: Multi-task learning (classification + segmentation)
-
-References:
------------
-- Attention mechanisms in CNNs
-- ROI pooling from Faster R-CNN
-- Multi-task learning frameworks
 """
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from torchvision import models
 
 class SpatialAttentionGate(nn.Module):
     """
     Spatial attention gate for ROI-based feature weighting.
-    
-    TODO: Implement attention mechanism
-    - Input: Feature maps from backbone
-    - Output: Attention-weighted features
+    Learns to emphasize important regions in the feature map.
     """
     
     def __init__(self, in_channels):
         super().__init__()
-        # Placeholder for future implementation
-        self.in_channels = in_channels
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_channels, 1, kernel_size=1),
+            nn.BatchNorm2d(1),
+            nn.Sigmoid()
+        )
         
     def forward(self, x):
-        # TODO: Implement attention computation
-        # For now, return input unchanged
-        return x
-
-
-class ROIFeatureExtractor(nn.Module):
-    """
-    Extract features from specific ROIs (eyes, mouth, face).
-    
-    TODO: Implement ROI pooling and feature extraction
-    - Input: Full face image + ROI coordinates
-    - Output: ROI-specific features
-    """
-    
-    def __init__(self, backbone, roi_size=56):
-        super().__init__()
-        self.backbone = backbone
-        self.roi_size = roi_size
-        
-    def forward(self, x, roi_coords=None):
-        # TODO: Implement ROI extraction and pooling
-        # For now, process full image
-        return self.backbone(x)
+        # x: (B, C, H, W)
+        # attention_map: (B, 1, H, W)
+        attention_map = self.conv(x)
+        # Gated features: (B, C, H, W)
+        return x * attention_map, attention_map
 
 
 class ROIGatedClassifier(nn.Module):
     """
     Drowsiness classifier with ROI-based gating.
-    
-    This is a placeholder for the future ROI-based architecture.
-    The actual implementation will combine:
-    1. Feature extraction from backbone
-    2. ROI attention mechanism
-    3. Multi-region feature fusion
-    4. Classification head
-    
-    TODO: Full implementation after baseline experiments
+    Integrates a backbone (ResNet) with a spatial attention mechanism.
     """
     
     def __init__(
         self,
-        backbone,
+        backbone_name='resnet50',
         num_classes=2,
-        num_rois=3,  # eyes_left, eyes_right, mouth
-        use_attention=True
+        pretrained=True,
+        dropout=0.5
     ):
         super().__init__()
         
-        self.backbone = backbone
-        self.num_classes = num_classes
-        self.num_rois = num_rois
-        self.use_attention = use_attention
+        # Load backbone
+        if backbone_name == 'resnet50':
+            base_model = models.resnet50(weights='IMAGENET1K_V1' if pretrained else None)
+            self.feature_extractor = nn.Sequential(*list(base_model.children())[:-2]) # Remove AvgPool and FC
+            in_channels = 2048
+        elif backbone_name == 'resnet18':
+            base_model = models.resnet18(weights='IMAGENET1K_V1' if pretrained else None)
+            self.feature_extractor = nn.Sequential(*list(base_model.children())[:-2])
+            in_channels = 512
+        else:
+            raise ValueError(f"Unsupported backbone: {backbone_name}")
+            
+        # Attention Gate
+        self.attention_gate = SpatialAttentionGate(in_channels)
         
-        # Placeholder components
-        if use_attention:
-            self.attention = SpatialAttentionGate(in_channels=2048)
+        # Global Pooling
+        self.global_pool = nn.AdaptiveAvgPool2d(1)
         
-        # TODO: Implement multi-ROI processing
-        # TODO: Implement feature fusion
-        # TODO: Implement classification head
+        # Classifier
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Dropout(dropout),
+            nn.Linear(in_channels, num_classes)
+        )
         
     def forward(self, x, roi_masks=None):
         """
@@ -123,59 +78,34 @@ class ROIGatedClassifier(nn.Module):
         
         Args:
             x: Input images (B, C, H, W)
-            roi_masks: Optional ROI masks (B, num_rois, H, W)
+            roi_masks: Optional ROI masks (B, num_rois, H, W) - Not used in this simple attention version yet
         
         Returns:
-            Classification logits (B, num_classes)
+            logits: (B, num_classes)
+            attention_map: (B, 1, H, W) - Visualization of where the model is looking
         """
-        # TODO: Implement full ROI-gated forward pass
-        # For now, just pass through backbone
-        features = self.backbone(x)
+        # Extract features
+        features = self.feature_extractor(x) # (B, C, H', W')
         
-        # Placeholder classification
-        # In future: incorporate ROI features
-        logits = torch.zeros(x.size(0), self.num_classes, device=x.device)
+        # Apply Attention Gating
+        gated_features, attention_map = self.attention_gate(features)
         
-        return logits
-
-
-# Future configuration for ROI model
-ROI_MODEL_CONFIG_TEMPLATE = """
-model:
-  name: "roi_resnet50"
-  architecture: "resnet50"
-  pretrained: true
-  num_classes: 2
-  
-  roi_config:
-    enabled: true
-    num_rois: 3  # eyes_left, eyes_right, mouth
-    roi_size: 56
-    use_attention: true
-    fusion_method: "weighted_sum"  # or "concat", "max", "avg"
-    
-  multi_task:
-    enabled: false  # Future: joint classification + segmentation
-    segmentation_loss_weight: 0.3
-
-# Note: This config is for future use
-# Current baseline models don't use ROI features
-"""
-
+        # Global Pooling
+        pooled = self.global_pool(gated_features)
+        
+        # Classification
+        logits = self.classifier(pooled)
+        
+        return logits, attention_map
 
 def create_roi_model(config):
     """
-    Create ROI-gated model (future implementation).
-    
-    Args:
-        config: Model configuration
-    
-    Returns:
-        ROI-gated model
-    
-    TODO: Implement after baseline experiments are complete
+    Factory function to create ROI model from config.
     """
-    raise NotImplementedError(
-        "ROI model not yet implemented. "
-        "Please use baseline models for initial experiments."
+    model_config = config.get('model', {})
+    return ROIGatedClassifier(
+        backbone_name=model_config.get('architecture', 'resnet50'),
+        num_classes=model_config.get('num_classes', 2),
+        pretrained=model_config.get('pretrained', True),
+        dropout=model_config.get('dropout', 0.5)
     )

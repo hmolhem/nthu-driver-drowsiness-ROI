@@ -1,0 +1,65 @@
+# MobileNetV3-Small CPU Configuration
+# Optimized for CPU speed and overfitting reduction
+
+model:
+  name: "mobilenet_v3_small_cpu"
+  architecture: "mobilenet_v3_small"
+  pretrained: true
+  num_classes: 2
+  freeze_backbone: false
+  dropout: 0.3                  # Increased from 0.2/0.5 default
+
+data:
+  data_root: "datasets"
+  train_csv: "data/splits/train.csv"
+  val_csv: "data/splits/val.csv"
+  test_csv: "data/splits/test.csv"
+  image_size: 224               # MobileNet is fast enough for 224
+  batch_size: 32
+  num_workers: 4
+  pin_memory: true
+
+augmentation:
+  enabled: true
+  # Note: Stronger augmentation is now hardcoded in transforms.py
+  # These params are passed but the code in transforms.py uses its own logic for some parts
+  horizontal_flip: 0.5
+  rotation_degrees: 15
+
+training:
+  epochs: 20                    # More epochs as it's harder to overfit
+  optimizer: "adamw"
+  learning_rate: 0.001
+  weight_decay: 0.01            # Stronger regularization
+  compile: false
+  amp:
+    enabled: false              # AMP not useful on CPU
+  lr_scheduler:
+    type: "reduce_on_plateau"
+    mode: "max"
+    factor: 0.5
+    patience: 3
+    min_lr: 0.000001
+  loss:
+    type: "weighted_cross_entropy"
+    use_class_weights: true
+  early_stopping:
+    enabled: true
+    patience: 5
+    monitor: "val_macro_f1"
+    mode: "max"
+    min_delta: 0.0001
+  gradient_clipping:
+    enabled: true
+    max_norm: 1.0
+
+logging:
+  experiment_name: "mobilenet_v3_small_cpu"
+  log_dir: "runs"
+  save_dir: "checkpoints"
+  log_interval: 0
+  save_best_only: true
+  save_last: true
+
+seed: 42
+device: "cpu"

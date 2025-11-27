@@ -64,3 +64,10 @@ reports/figures/
 notebooks/*
 !notebooks/colab_training.ipynb
 !notebooks/colab_gpu_training_01.ipynb
+
+# Generated masks
+data/masks/
+
+# PyTorch models and tensors
+*.pth
+*.pt

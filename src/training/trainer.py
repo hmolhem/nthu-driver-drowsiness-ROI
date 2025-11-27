@@ -152,9 +152,13 @@ class Trainer:
             if self.use_amp and autocast is not None:
                 with autocast():
                     outputs = self.model(images)
+                    if isinstance(outputs, tuple):
+                        outputs, _ = outputs
                     loss = self.criterion(outputs, labels)
             else:
                 outputs = self.model(images)
+                if isinstance(outputs, tuple):
+                    outputs, _ = outputs
                 loss = self.criterion(outputs, labels)
 
             if self.use_amp and self.scaler is not None:
@@ -214,6 +218,8 @@ class Trainer:
             labels = labels.to(self.device)
             
             outputs = self.model(images)
+            if isinstance(outputs, tuple):
+                outputs, _ = outputs
             loss = self.criterion(outputs, labels)
             
             preds = outputs.argmax(dim=1)

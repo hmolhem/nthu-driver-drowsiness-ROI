@@ -50,6 +50,11 @@ class DrowsinessClassifier(nn.Module):
             self.backbone = self._load_efficientnet(architecture, pretrained)
             num_features = self.backbone.classifier[1].in_features
             self.backbone.classifier = nn.Identity()
+
+        elif architecture.startswith('mobilenet'):
+            self.backbone = self._load_mobilenet(architecture, pretrained)
+            num_features = self.backbone.classifier[0].in_features
+            self.backbone.classifier = nn.Identity()
         
         else:
             raise ValueError(f"Unsupported architecture: {architecture}")
@@ -93,6 +98,19 @@ class DrowsinessClassifier(nn.Module):
         
         weights = 'IMAGENET1K_V1' if pretrained else None
         return efficientnet_models[name](weights=weights)
+
+    def _load_mobilenet(self, name, pretrained):
+        """Load MobileNetV3 backbone."""
+        mobilenet_models = {
+            'mobilenet_v3_small': models.mobilenet_v3_small,
+            'mobilenet_v3_large': models.mobilenet_v3_large,
+        }
+        
+        if name not in mobilenet_models:
+            raise ValueError(f"Unknown MobileNet variant: {name}")
+        
+        weights = 'IMAGENET1K_V1' if pretrained else None
+        return mobilenet_models[name](weights=weights)
     
     def forward(self, x):
         """
@@ -125,6 +143,8 @@ class DrowsinessClassifier(nn.Module):
         return self.backbone(x)
 
 
+from src.models.roi_gating import create_roi_model
+
 def create_model(config):
     """
     Create model from configuration.
@@ -136,9 +156,15 @@ def create_model(config):
         PyTorch model
     """
     model_config = config.get('model', config)
+    architecture = model_config.get('architecture', 'resnet50')
+    model_name = model_config.get('name', '')
+    
+    # Check if it's an ROI model
+    if 'roi' in model_name or config.get('model', {}).get('roi_config', {}).get('enabled', False):
+        return create_roi_model(config)
     
     model = DrowsinessClassifier(
-        architecture=model_config.get('architecture', 'resnet50'),
+        architecture=architecture,
         num_classes=model_config.get('num_classes', 2),
         pretrained=model_config.get('pretrained', True),
         freeze_backbone=model_config.get('freeze_backbone', False),
