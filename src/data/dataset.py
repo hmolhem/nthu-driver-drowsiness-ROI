@@ -119,7 +119,9 @@ def create_dataloaders(
     val_transform=None,
     batch_size=32,
     num_workers=4,
-    pin_memory=True
+    pin_memory=True,
+    persistent_workers=False,
+    prefetch_factor=2
 ):
     """
     Create train, val, and test dataloaders.
@@ -140,6 +142,11 @@ def create_dataloaders(
     """
     from torch.utils.data import DataLoader  # Like Keras generators
     
+    # Sanitize args for num_workers=0
+    if num_workers == 0:
+        persistent_workers = False
+        prefetch_factor = None
+    
     # Create datasets
     train_dataset = DrowsinessDataset(
         train_csv, data_root, transform=train_transform
@@ -158,6 +165,8 @@ def create_dataloaders(
         shuffle=True,
         num_workers=num_workers,
         pin_memory=pin_memory,
+        persistent_workers=persistent_workers,
+        prefetch_factor=prefetch_factor,
         drop_last=True  # Drop last incomplete batch for training
     )
     
@@ -166,7 +175,9 @@ def create_dataloaders(
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,
-        pin_memory=pin_memory
+        pin_memory=pin_memory,
+        persistent_workers=persistent_workers,
+        prefetch_factor=prefetch_factor
     )
     
     test_loader = DataLoader(
@@ -174,7 +185,9 @@ def create_dataloaders(
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,
-        pin_memory=pin_memory
+        pin_memory=pin_memory,
+        persistent_workers=persistent_workers,
+        prefetch_factor=prefetch_factor
     )
     
     return {

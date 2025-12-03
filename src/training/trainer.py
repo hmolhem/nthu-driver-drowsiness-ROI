@@ -43,6 +43,10 @@ class Trainer:
         self.config = config
         self.device = device
         
+        # Optimize for fixed input size
+        if device.startswith('cuda'):
+            torch.backends.cudnn.benchmark = True
+        
         # Optional AMP
         self.use_amp = bool(self.config.get('training', {}).get('amp', {}).get('enabled', False) and device.startswith('cuda') and GradScaler is not None)
         self.scaler = GradScaler(enabled=self.use_amp) if self.use_amp else None
@@ -94,6 +98,8 @@ class Trainer:
             self.optimizer = optim.SGD(params, lr=lr, weight_decay=weight_decay, momentum=0.9)
         elif optimizer_name == 'adamw':
             self.optimizer = optim.AdamW(params, lr=lr, weight_decay=weight_decay)
+        elif optimizer_name == 'rmsprop':
+            self.optimizer = optim.RMSprop(params, lr=lr, weight_decay=weight_decay)
         else:
             raise ValueError(f"Unsupported optimizer: {optimizer_name}")
     
@@ -107,7 +113,9 @@ class Trainer:
             class_weights = self.train_loader.dataset.get_class_weights()
             self.criterion = nn.CrossEntropyLoss(weight=class_weights.to(self.device))
         else:
-            self.criterion = nn.CrossEntropyLoss()
+
+            label_smoothing = loss_config.get('label_smoothing', 0.0)
+            self.criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
     
     def setup_scheduler(self):
         """Setup learning rate scheduler from config."""
@@ -121,6 +129,12 @@ class Trainer:
                 factor=lr_config.get('factor', 0.5),
                 patience=lr_config.get('patience', 5),
                 min_lr=lr_config.get('min_lr', 1e-6)
+            )
+        elif scheduler_type == 'cosine':
+            self.scheduler = optim.lr_scheduler.CosineAnnealingLR(
+                self.optimizer,
+                T_max=self.config.get('training', {}).get('epochs', 50),
+                eta_min=lr_config.get('min_lr', 0)
             )
         else:
             self.scheduler = None
@@ -344,8 +358,12 @@ class Trainer:
                   f"Macro-F1: {val_metrics['f1_macro']:.4f}")
             
             # Learning rate scheduling
+            # Learning rate scheduling
             if self.scheduler is not None:
-                self.scheduler.step(val_metrics['f1_macro'])
+                if isinstance(self.scheduler, optim.lr_scheduler.ReduceLROnPlateau):
+                    self.scheduler.step(val_metrics['f1_macro'])
+                else:
+                    self.scheduler.step()
             
             # Check if best model
             current_metric = val_metrics.get('f1_macro', 0)

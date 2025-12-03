@@ -92,7 +92,9 @@ def main():
         val_transform=val_transform,
         batch_size=config.data.get('batch_size', 32),
         num_workers=config.data.get('num_workers', 4),
-        pin_memory=config.data.get('pin_memory', True)
+        pin_memory=config.data.get('pin_memory', True),
+        persistent_workers=config.data.get('persistent_workers', False),
+        prefetch_factor=config.data.get('prefetch_factor', 2)
     )
     
     print(f"  Train batches: {len(loaders['train'])}")

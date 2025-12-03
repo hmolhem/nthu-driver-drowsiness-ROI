@@ -12,6 +12,19 @@ from torchvision import transforms
 import numpy as np
 
 
+class GaussianNoise(object):
+    """Add gaussian noise to tensor."""
+    def __init__(self, mean=0., std=1.):
+        self.std = std
+        self.mean = mean
+        
+    def __call__(self, tensor):
+        return tensor + torch.randn(tensor.size()) * self.std + self.mean
+    
+    def __repr__(self):
+        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
+
+
 def get_train_transforms(image_size=224, augment=True, augment_config=None):
     """
     Get training data transforms with optional augmentation.
@@ -35,9 +48,15 @@ def get_train_transforms(image_size=224, augment=True, augment_config=None):
     Returns:
         torchvision.transforms.Compose object
     """
-    transform_list = [
-        transforms.Resize((image_size, image_size)),  # Like target_size in Keras
-    ]
+    transform_list = []
+    
+    if augment:
+        # Stronger augmentation: RandomResizedCrop instead of simple Resize
+        # This forces the model to learn from parts of the image
+        scale = augment_config.get('crop_scale', (0.8, 1.0)) if augment_config else (0.8, 1.0)
+        transform_list.append(transforms.RandomResizedCrop(image_size, scale=scale))
+    else:
+        transform_list.append(transforms.Resize((image_size, image_size)))
     
     if augment:
         # Default config if none provided
@@ -63,6 +82,7 @@ def get_train_transforms(image_size=224, augment=True, augment_config=None):
             ),
         ])
         
+        
         # Optional blur
         if config.get('blur_enabled', False):
             transform_list.append(
@@ -79,6 +99,10 @@ def get_train_transforms(image_size=224, augment=True, augment_config=None):
             std=[0.229, 0.224, 0.225]    # ImageNet std
         )
     ])
+
+    if augment and config.get('gaussian_noise', False):
+         transform_list.append(GaussianNoise(std=config.get('noise_std', 0.05)))
+
     
     return transforms.Compose(transform_list)
 

@@ -1,0 +1,71 @@
+# Improved ResNet50 Configuration (Verification)
+# Features: AdamW, Cosine Scheduler, Label Smoothing, Stronger Augmentation
+
+model:
+  name: "resnet50_improved_verify"
+  architecture: "resnet50"
+  pretrained: true
+  num_classes: 2
+  freeze_backbone: false
+
+data:
+  data_root: "datasets"
+  train_csv: "data/splits/train.csv"
+  val_csv: "data/splits/val.csv"
+  test_csv: "data/splits/test.csv"
+  image_size: 224
+  batch_size: 16  # Smaller batch for test
+  num_workers: 0
+  pin_memory: true
+
+augmentation:
+  enabled: true
+  crop_scale: [0.6, 1.0]
+  horizontal_flip: 0.5
+  rotation_degrees: 15
+  color_jitter: 0.3
+  hue: 0.1
+  gaussian_noise: true
+  noise_std: 0.05
+  random_affine:
+    translate: [0.1, 0.1]
+    scale: [0.9, 1.1]
+
+training:
+  epochs: 1  # Just 1 epoch for verification
+  optimizer: "adamw"
+  learning_rate: 0.0005
+  weight_decay: 0.01
+  
+  lr_scheduler:
+    type: "cosine"
+    min_lr: 0.000001
+  
+  loss:
+    type: "cross_entropy"
+    label_smoothing: 0.1
+  
+  early_stopping:
+    enabled: false
+  
+  gradient_clipping:
+    enabled: true
+    max_norm: 1.0
+
+evaluation:
+  metrics:
+    - accuracy
+    - macro_f1
+  
+  primary_metric: "macro_f1"
+
+logging:
+  experiment_name: "improved_resnet50_verify"
+  log_dir: "runs"
+  save_dir: "checkpoints"
+  log_interval: 10
+  save_best_only: false
+  save_last: false
+
+seed: 42
+device: "cpu" # Force CPU for quick test without CUDA issues

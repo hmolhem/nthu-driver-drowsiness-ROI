@@ -1,0 +1,63 @@
+# Optimized configuration for fast local training
+seed: 42
+device: cuda  # Will fallback to cpu if not available
+
+data:
+  data_root: datasets
+  train_csv: data/splits/train.csv
+  val_csv: data/splits/val.csv
+  test_csv: data/splits/test.csv
+  image_size: 224
+  batch_size: 32      # Good balance for speed/memory
+  num_workers: 4      # Optimized for typical 4-8 core CPUs
+  pin_memory: true
+  persistent_workers: true # NEW: Keep workers alive
+  prefetch_factor: 2       # NEW: Pre-load batches
+
+model:
+  architecture: mobilenet_v3_large  # Faster than ResNet50
+  num_classes: 2
+  pretrained: true
+  freeze_backbone: false  # Fine-tune all layers for best results
+  dropout: 0.2
+
+training:
+  epochs: 20
+  optimizer: adamw
+  learning_rate: 0.001
+  weight_decay: 0.01
+  
+  loss:
+    type: cross_entropy
+    label_smoothing: 0.1
+  
+  lr_scheduler:
+    type: cosine
+    min_lr: 1.0e-6
+  
+  early_stopping:
+    enabled: true
+    patience: 5
+    monitor: val_f1_macro
+  
+  amp:
+    enabled: true  # Automatic Mixed Precision
+  
+  compile: false    # torch.compile (Disabled: requires VS C++ compiler on Windows)
+  
+  gradient_clipping:
+    enabled: true
+    max_norm: 1.0
+
+augmentation:
+  enabled: true
+  crop_scale: [0.8, 1.0]
+  horizontal_flip: 0.5
+  color_jitter: 0.2
+  rotation_degrees: 10
+  gaussian_noise: false # Disable for speed
+
+logging:
+  save_dir: checkpoints
+  experiment_name: fast_mobilenet
+  log_interval: 10
