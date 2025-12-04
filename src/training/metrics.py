@@ -75,9 +75,11 @@ class MetricsCalculator:
         }
         
         # Per-class metrics
-        precision_per_class = precision_score(labels, preds, average=None, zero_division=0)
-        recall_per_class = recall_score(labels, preds, average=None, zero_division=0)
-        f1_per_class = f1_score(labels, preds, average=None, zero_division=0)
+        # Fix: Explicitly pass labels to ensure we get scores for all classes even if some are missing in the batch
+        all_class_ids = list(range(self.num_classes))
+        precision_per_class = precision_score(labels, preds, average=None, labels=all_class_ids, zero_division=0)
+        recall_per_class = recall_score(labels, preds, average=None, labels=all_class_ids, zero_division=0)
+        f1_per_class = f1_score(labels, preds, average=None, labels=all_class_ids, zero_division=0)
         
         for i, class_name in enumerate(self.class_names):
             metrics[f'precision_{class_name}'] = precision_per_class[i]

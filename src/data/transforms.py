@@ -66,6 +66,8 @@ def get_train_transforms(image_size=224, augment=True, augment_config=None):
         transform_list.extend([
             transforms.RandomHorizontalFlip(p=config.get('horizontal_flip', 0.5)),
             
+            transforms.RandomGrayscale(p=config.get('grayscale_prob', 0.0)),
+            
             transforms.ColorJitter(
                 brightness=config.get('color_jitter', 0.3),
                 contrast=config.get('color_jitter', 0.3),
