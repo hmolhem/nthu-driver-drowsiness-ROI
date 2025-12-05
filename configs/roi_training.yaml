@@ -1,0 +1,58 @@
+# ROI-based training configuration
+seed: 42
+device: cuda
+
+data:
+  data_root: datasets
+  train_csv: data/splits/train.csv
+  val_csv: data/splits/val.csv
+  test_csv: data/splits/test.csv
+  image_size: 224 # Not used for ROI, but kept for compatibility
+  roi_size: 64    # Size of each crop
+  batch_size: 32
+  num_workers: 0  # Set to 0 for debugging/stability on Windows with OpenCV
+  pin_memory: true
+  persistent_workers: false
+  prefetch_factor: null
+
+model:
+  architecture: roi_multistream
+  num_classes: 2
+  pretrained: true
+  freeze_backbone: false
+  dropout: 0.5
+
+training:
+  epochs: 30             # Full training
+  optimizer: adamw
+  learning_rate: 0.0001  # Lower LR for fine-tuning (was 0.001)
+  weight_decay: 0.01
+  
+  loss:
+    type: cross_entropy
+    label_smoothing: 0.1
+  
+  lr_scheduler:
+    type: cosine
+    min_lr: 1.0e-6
+  
+  early_stopping:
+    enabled: true
+    patience: 5
+  
+  amp:
+    enabled: true
+  
+  compile: false
+  
+  gradient_clipping:
+    enabled: true
+    max_norm: 1.0
+
+augmentation:
+  enabled: true # ROI transform handles its own augmentation/randomness if implemented, currently it's deterministic-ish
+
+logging:
+  save_dir: checkpoints
+  experiment_name: roi_verification
+  log_interval: 10

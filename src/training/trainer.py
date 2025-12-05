@@ -159,7 +159,10 @@ class Trainer:
         
         # KERAS COMPARISON: This loop replaces the magic inside model.fit()
         for batch_idx, (images, labels, metadata) in enumerate(pbar):
-            images = images.to(self.device)
+            if isinstance(images, dict):
+                images = {k: v.to(self.device) for k, v in images.items()}
+            else:
+                images = images.to(self.device)
             labels = labels.to(self.device)
 
             self.optimizer.zero_grad()
@@ -193,7 +196,7 @@ class Trainer:
             # Track metrics
             preds = outputs.argmax(dim=1)
             metrics_calc.update(preds, labels)
-            loss_meter.update(loss.item(), images.size(0))
+            loss_meter.update(loss.item(), labels.size(0))
             
             # Update progress bar
             pbar.set_postfix({
@@ -228,7 +231,10 @@ class Trainer:
         
         log_interval = self.config.get('logging', {}).get('log_interval', 0)
         for batch_idx, (images, labels, metadata) in enumerate(pbar):
-            images = images.to(self.device)
+            if isinstance(images, dict):
+                images = {k: v.to(self.device) for k, v in images.items()}
+            else:
+                images = images.to(self.device)
             labels = labels.to(self.device)
             
             outputs = self.model(images)
@@ -238,7 +244,7 @@ class Trainer:
             
             preds = outputs.argmax(dim=1)
             metrics_calc.update(preds, labels)
-            loss_meter.update(loss.item(), images.size(0))
+            loss_meter.update(loss.item(), labels.size(0))
             
             pbar.set_postfix({'loss': f'{loss_meter.avg:.4f}'})
 

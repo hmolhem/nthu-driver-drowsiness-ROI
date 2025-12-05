@@ -160,6 +160,15 @@ def create_model(config):
     model_name = model_config.get('name', '')
     
     # Check if it's an ROI model
+    # Check if it's an ROI model
+    if architecture == 'roi_multistream':
+        from src.models.roi_model import get_roi_model
+        return get_roi_model(
+            num_classes=model_config.get('num_classes', 2),
+            pretrained=model_config.get('pretrained', True),
+            freeze_backbone=model_config.get('freeze_backbone', False)
+        )
+
     if 'roi' in model_name or config.get('model', {}).get('roi_config', {}).get('enabled', False):
         return create_roi_model(config)
     

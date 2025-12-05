@@ -78,8 +78,18 @@ def main():
     augment = config.augmentation.get('enabled', True)
     augment_config = config.augmentation if augment else None
     
-    train_transform = get_train_transforms(image_size, augment=augment, augment_config=augment_config)
-    val_transform = get_val_transforms(image_size)
+    if config.model.architecture == 'roi_multistream':
+        from src.data.roi_transforms import get_roi_transforms
+        # ROI transforms output 64x64 by default, or whatever is in config
+        roi_size = config.data.get('roi_size', 64)
+        if isinstance(roi_size, int): roi_size = (roi_size, roi_size)
+        
+        print(f"Using ROI transforms with size {roi_size}")
+        train_transform = get_roi_transforms(output_size=roi_size)
+        val_transform = get_roi_transforms(output_size=roi_size)
+    else:
+        train_transform = get_train_transforms(image_size, augment=augment, augment_config=augment_config)
+        val_transform = get_val_transforms(image_size)
     
     # Create dataloaders
     print("Creating dataloaders...")
