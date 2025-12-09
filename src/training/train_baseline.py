@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.models.classifier import create_model
 from src.data.dataset import create_dataloaders
-from src.data.transforms import get_train_transforms, get_val_transforms
+from src.data.transforms import get_train_transforms, get_val_transforms, get_simple_transforms, get_simple_val_transforms
 from src.training.trainer import Trainer
 from src.utils.config import get_config
 import random
@@ -87,6 +87,10 @@ def main():
         print(f"Using ROI transforms with size {roi_size}")
         train_transform = get_roi_transforms(output_size=roi_size)
         val_transform = get_roi_transforms(output_size=roi_size)
+    elif config.model.architecture == 'simple_cnn':
+        print("Using SimpleCNN transforms (0-1 scaling, no normalization)")
+        train_transform = get_simple_transforms(image_size, augment=augment, augment_config=augment_config)
+        val_transform = get_simple_val_transforms(image_size)
     else:
         train_transform = get_train_transforms(image_size, augment=augment, augment_config=augment_config)
         val_transform = get_val_transforms(image_size)

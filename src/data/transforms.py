@@ -146,6 +146,37 @@ def denormalize(tensor, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
     return tensor * std + mean
 
 
+def get_simple_transforms(image_size=224, augment=True, augment_config=None):
+    """
+    Get simple transforms (0-1 scaling, no ImageNet norm) for SimpleCNN.
+    """
+    transform_list = []
+    
+    if augment:
+        # Simple augmentation similar to Kaggle notebook
+        config = augment_config or {}
+        transform_list.extend([
+            transforms.RandomResizedCrop(image_size, scale=(0.8, 1.0)),
+            transforms.RandomHorizontalFlip(p=config.get('horizontal_flip', 0.5)),
+            transforms.RandomRotation(degrees=config.get('rotation_degrees', 15)),
+        ])
+    else:
+        transform_list.append(transforms.Resize((image_size, image_size)))
+    
+    # Just ToTensor() scales to [0, 1]
+    transform_list.append(transforms.ToTensor())
+    
+    return transforms.Compose(transform_list)
+
+
+def get_simple_val_transforms(image_size=224):
+    """Simple validation transforms (0-1 scaling)."""
+    return transforms.Compose([
+        transforms.Resize((image_size, image_size)),
+        transforms.ToTensor()
+    ])
+
+
 # Robustness test transforms (for future experiments)
 def get_robustness_transforms(image_size=224, noise_level='medium'):
     """

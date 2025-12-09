@@ -143,6 +143,74 @@ class DrowsinessClassifier(nn.Module):
         return self.backbone(x)
 
 
+class SimpleCNN(nn.Module):
+    """
+    Lightweight CNN architecture inspired by Kaggle notebook 'CNN-Model_training-Group'.
+    
+    Architecture:
+    1. Input: 224x224x3 (Rescaled 0-1)
+    2. Conv2D(32, 3x3) -> MaxPool(2x2)
+    3. Conv2D(64, 3x3) -> MaxPool(2x2)
+    4. Conv2D(128, 3x3) -> MaxPool(2x2)
+    5. Flatten -> Dense(256) -> Dropout(0.5) -> Dense(num_classes)
+    """
+    
+    def __init__(self, num_classes=2, dropout=0.5):
+        super().__init__()
+        
+        # Block 1
+        self.conv1 = nn.Conv2d(3, 32, kernel_size=3) # Valid padding: 224->222
+        self.relu1 = nn.ReLU()
+        self.pool1 = nn.MaxPool2d(kernel_size=2)     # 222->111
+        
+        # Block 2
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3) # 111->109
+        self.relu2 = nn.ReLU()
+        self.pool2 = nn.MaxPool2d(kernel_size=2)      # 109->54
+        
+        # Block 3
+        self.conv3 = nn.Conv2d(64, 128, kernel_size=3) # 54->52
+        self.relu3 = nn.ReLU()
+        self.pool3 = nn.MaxPool2d(kernel_size=2)       # 52->26
+        
+        # Classifier
+        self.flatten = nn.Flatten()
+        
+        # Input features calculation:
+        # Final spatial dim: 26x26
+        # Channels: 128
+        # Total features: 26 * 26 * 128 = 86528
+        self.fc1 = nn.Linear(86528, 256)
+        self.relu4 = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
+        self.fc2 = nn.Linear(256, num_classes)
+        
+    def forward(self, x):
+        # Block 1
+        x = self.conv1(x)
+        x = self.relu1(x)
+        x = self.pool1(x)
+        
+        # Block 2
+        x = self.conv2(x)
+        x = self.relu2(x)
+        x = self.pool2(x)
+        
+        # Block 3
+        x = self.conv3(x)
+        x = self.relu3(x)
+        x = self.pool3(x)
+        
+        # Classifier
+        x = self.flatten(x)
+        x = self.fc1(x)
+        x = self.relu4(x)
+        x = self.dropout(x)
+        x = self.fc2(x)
+        
+        return x
+
+
 from src.models.roi_gating import create_roi_model
 
 def create_model(config):
@@ -171,6 +239,12 @@ def create_model(config):
 
     if 'roi' in model_name or config.get('model', {}).get('roi_config', {}).get('enabled', False):
         return create_roi_model(config)
+        
+    if architecture == 'simple_cnn':
+        return SimpleCNN(
+            num_classes=model_config.get('num_classes', 2),
+            dropout=model_config.get('dropout', 0.5)
+        )
     
     model = DrowsinessClassifier(
         architecture=architecture,
